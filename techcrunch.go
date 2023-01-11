@@ -7,27 +7,20 @@ import (
 	"net/http"
 )
 
-const TitleMaxSize = 80
-
-type Source interface {
-	GetNews() ([]News, error)
+type TechCrunchClient struct {
+	HTTPClient *http.Client
+	HTTPHost   string
 }
 
-type News struct {
-	Title string
-	URL   string
-}
-
-func (n News) String() string {
-	title := n.Title
-	if len(title) > TitleMaxSize {
-		title = title[:TitleMaxSize]
+func NewTechCrunchClient() *TechCrunchClient {
+	return &TechCrunchClient{
+		HTTPClient: &http.Client{},
+		HTTPHost:   "https://techcrunch.com",
 	}
-	return fmt.Sprintf("%-80s %s", title, n.URL)
 }
 
-func GetRSSFeed(url string) ([]News, error) {
-	resp, err := http.Get(url)
+func (tc TechCrunchClient) GetNews() ([]News, error) {
+	resp, err := tc.HTTPClient.Get(fmt.Sprintf("%s/feed/", tc.HTTPHost))
 	if err != nil {
 		return nil, err
 	}
@@ -39,10 +32,10 @@ func GetRSSFeed(url string) ([]News, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ParseRSSResponse(data)
+	return ParseTCResponse(data)
 }
 
-func ParseRSSResponse(input []byte) ([]News, error) {
+func ParseTCResponse(input []byte) ([]News, error) {
 	type rss struct {
 		XMLName xml.Name `xml:"rss"`
 		Channel struct {
