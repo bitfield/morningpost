@@ -16,9 +16,9 @@ type TheGuardianClient struct {
 }
 
 func (tg TheGuardianClient) GetNews() ([]News, error) {
-	apiKey := os.Getenv("TheGuardinAPIKey")
+	apiKey := os.Getenv("TheGuardianAPIKey")
 	if apiKey == "" {
-		return nil, fmt.Errorf("OS environment variable TheGuardinAPIKey not found")
+		return nil, fmt.Errorf("OS environment variable TheGuardianAPIKey not found")
 	}
 	resp, err := tg.HTTPClient.Get(fmt.Sprintf("%s/search?api-key=%s", tg.HTTPHost, apiKey))
 	if err != nil {

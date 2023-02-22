@@ -1,7 +1,6 @@
 package morningpost
 
 import (
-	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,30 +31,5 @@ func (tc TechCrunchClient) GetNews() ([]News, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ParseTCResponse(data)
-}
-
-func ParseTCResponse(input []byte) ([]News, error) {
-	type rss struct {
-		XMLName xml.Name `xml:"rss"`
-		Channel struct {
-			Items []struct {
-				Title string `xml:"title"`
-				Link  string `xml:"link"`
-			} `xml:"item"`
-		} `xml:"channel"`
-	}
-	r := rss{}
-	err := xml.Unmarshal(input, &r)
-	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal data %q: %w", input, err)
-	}
-	news := make([]News, len(r.Channel.Items))
-	for i, item := range r.Channel.Items {
-		news[i] = News{
-			Title: item.Title,
-			URL:   item.Link,
-		}
-	}
-	return news, err
+	return ParseRSSResponse(data)
 }

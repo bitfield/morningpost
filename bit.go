@@ -1,11 +1,9 @@
-package sources
+package morningpost
 
 import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/thiagonache/morningpost"
 )
 
 type BITClient struct {
@@ -13,7 +11,7 @@ type BITClient struct {
 	HTTPHost   string
 }
 
-func (b BITClient) GetNews() ([]morningpost.News, error) {
+func (b BITClient) GetNews() ([]News, error) {
 	resp, err := b.HTTPClient.Get(fmt.Sprintf("%s/golang?format=rss", b.HTTPHost))
 	if err != nil {
 		return nil, err
@@ -26,7 +24,7 @@ func (b BITClient) GetNews() ([]morningpost.News, error) {
 	if err != nil {
 		return nil, err
 	}
-	return morningpost.ParseRSSResponse(data)
+	return ParseRSSResponse(data)
 }
 
 func NewBITClient() *BITClient {

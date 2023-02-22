@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 type HNClient struct {
@@ -34,21 +32,4 @@ func NewHNClient() *HNClient {
 		HTTPClient: &http.Client{},
 		HTTPHost:   "https://news.ycombinator.com",
 	}
-}
-
-func ParseHNResponse(r io.Reader) ([]News, error) {
-	doc, err := goquery.NewDocumentFromReader(r)
-	if err != nil {
-		return nil, fmt.Errorf("error reading content: %+v", err)
-	}
-	news := []News{}
-	doc.Find(".titleline").Each(func(i int, s *goquery.Selection) {
-		n := News{Title: s.Text()}
-		href, ok := s.Find("a").Attr("href")
-		if ok {
-			n.URL = href
-		}
-		news = append(news, n)
-	})
-	return news, nil
 }

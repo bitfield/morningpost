@@ -1,13 +1,11 @@
 module github.com/thiagonache/morningpost
 
-go 1.19
+go 1.20
 
 require (
-	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/google/go-cmp v0.5.9
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
+	golang.org/x/sync v0.1.0
 )
 
-require (
-	github.com/andybalholm/cascadia v1.3.1 // indirect
-	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8 // indirect
-)
+require golang.org/x/sys v0.0.0-20210616045830-e2b7044e8c71 // indirect
