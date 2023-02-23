@@ -11,6 +11,13 @@ type BITClient struct {
 	HTTPHost   string
 }
 
+func NewBITClient() *BITClient {
+	return &BITClient{
+		HTTPClient: &http.Client{},
+		HTTPHost:   "https://bitfieldconsulting.com",
+	}
+}
+
 func (b BITClient) GetNews() ([]News, error) {
 	resp, err := b.HTTPClient.Get(fmt.Sprintf("%s/golang?format=rss", b.HTTPHost))
 	if err != nil {
@@ -25,11 +32,4 @@ func (b BITClient) GetNews() ([]News, error) {
 		return nil, err
 	}
 	return ParseRSSResponse(data)
-}
-
-func NewBITClient() *BITClient {
-	return &BITClient{
-		HTTPClient: &http.Client{},
-		HTTPHost:   "https://bitfieldconsulting.com",
-	}
 }

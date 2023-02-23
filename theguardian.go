@@ -15,10 +15,17 @@ type TheGuardianClient struct {
 	HTTPHost   string
 }
 
+func NewTheGuardianClient() *TheGuardianClient {
+	return &TheGuardianClient{
+		HTTPClient: http.DefaultClient,
+		HTTPHost:   "https://content.guardianapis.com",
+	}
+}
+
 func (tg TheGuardianClient) GetNews() ([]News, error) {
 	apiKey := os.Getenv("TheGuardianAPIKey")
 	if apiKey == "" {
-		return nil, fmt.Errorf("OS environment variable TheGuardianAPIKey not found")
+		return nil, fmt.Errorf("[TheGuardian] => OS environment variable TheGuardianAPIKey not found")
 	}
 	resp, err := tg.HTTPClient.Get(fmt.Sprintf("%s/search?api-key=%s", tg.HTTPHost, apiKey))
 	if err != nil {
@@ -26,27 +33,20 @@ func (tg TheGuardianClient) GetNews() ([]News, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status %q", resp.Status)
+		return nil, fmt.Errorf("[TheGuardian] => unexpected response status %q", resp.Status)
 	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	news, err := ParseTGResponse(data)
+	news, err := ParseTheGuardianResponse(data)
 	if err != nil {
 		return nil, err
 	}
 	return news, nil
 }
 
-func NewTGClient() *TheGuardianClient {
-	return &TheGuardianClient{
-		HTTPClient: http.DefaultClient,
-		HTTPHost:   "https://content.guardianapis.com",
-	}
-}
-
-func ParseTGResponse(input []byte) ([]News, error) {
+func ParseTheGuardianResponse(input []byte) ([]News, error) {
 	type guardianResponse struct {
 		Response struct {
 			Status  string

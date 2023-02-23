@@ -2,22 +2,30 @@ package morningpost
 
 import (
 	"bytes"
+	"embed"
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
 	"math/rand"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/browser"
 	"golang.org/x/sync/errgroup"
 )
 
+//go:embed output.html.tpl
+var content embed.FS
+
 const (
-	defaultShowMaxNews  = 20
-	defaultTemplatePath = "output.html.tpl"
-	serverListenAddr    = ":33000"
+	defaultOutput      = "browser"
+	defaultShowMaxNews = 20
+	serverListenAddr   = ":33000"
 )
 
 type Source interface {
@@ -31,11 +39,11 @@ type News struct {
 
 type MorningPost struct {
 	PageNews           []News
-	ShowMaxNews        int
+	showMaxNews        int
 	Sources            []Source
 	template           *template.Template
-	TemplatePath       string
 	loadDefaultSources bool
+	Output             string
 
 	mu   sync.Mutex
 	News []News
@@ -61,12 +69,12 @@ func (m *MorningPost) GetNews() error {
 
 func (m *MorningPost) RandomNews() error {
 	totalNews := len(m.News)
-	if m.ShowMaxNews > totalNews {
-		return fmt.Errorf("cannot random values: ShowMaxNews (%d) is bigger than News (%d)", m.ShowMaxNews, totalNews)
+	if m.ShowMaxNews() > totalNews {
+		return fmt.Errorf("cannot random values: ShowMaxNews (%d) is bigger than News (%d)", m.ShowMaxNews(), totalNews)
 	}
-	randomIndexes := rand.Perm(totalNews)[:m.ShowMaxNews]
-	for _, idx := range randomIndexes {
-		m.PageNews = append(m.PageNews, m.News[idx])
+	randomIndexes := rand.Perm(totalNews)[:m.ShowMaxNews()]
+	for i, idx := range randomIndexes {
+		m.PageNews[i] = m.News[idx]
 	}
 	return nil
 }
@@ -75,19 +83,33 @@ func (m *MorningPost) WritePageNewsTo(w io.Writer) error {
 	return m.template.Execute(w, m.PageNews)
 }
 
+func (m *MorningPost) ShowMaxNews() int {
+	return m.showMaxNews
+}
+
+func (m *MorningPost) String() string {
+	output := []string{}
+	for _, news := range m.PageNews {
+		output = append(output, fmt.Sprintf("%s [%s]", news.Title, news.URL))
+	}
+	return strings.Join(output, "\n")
+}
+
 func New(opts ...Option) (*MorningPost, error) {
+	rand.Seed(time.Now().UTC().UnixNano())
 	m := &MorningPost{
 		loadDefaultSources: true,
-		ShowMaxNews:        defaultShowMaxNews,
-		TemplatePath:       defaultTemplatePath,
+		showMaxNews:        defaultShowMaxNews,
+		Output:             defaultOutput,
 	}
 	for _, o := range opts {
 		o(m)
 	}
+	m.PageNews = make([]News, m.ShowMaxNews())
 	if m.loadDefaultSources {
-		m.Sources = append(m.Sources, []Source{NewHNClient(), NewTGClient(), NewTechCrunchClient(), NewBITClient()}...)
+		m.Sources = append(m.Sources, []Source{NewHackerNewsClient(), NewTechCrunchClient()}...)
 	}
-	tpl, err := template.New(m.TemplatePath).ParseFiles(m.TemplatePath)
+	tpl, err := template.ParseFS(content, "output.html.tpl")
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +158,21 @@ func ParseRSSResponse(input []byte) ([]News, error) {
 	return news, err
 }
 
+func FromArgs(args []string) Option {
+	return func(m *MorningPost) error {
+		fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+		output := fs.String("o", "browser", "where to send news [browser|terminal]")
+		err := fs.Parse(args)
+		if err != nil {
+			return err
+		}
+		m.Output = *output
+		return nil
+	}
+}
+
 func Main() int {
-	m, err := New()
+	m, err := New(FromArgs(os.Args[1:]))
 	if err != nil {
 		fmt.Println(err)
 		return 1
@@ -151,6 +186,10 @@ func Main() int {
 	if err != nil {
 		fmt.Println(err)
 		return 1
+	}
+	if m.Output == "terminal" {
+		fmt.Println(m)
+		return 0
 	}
 	buf := &bytes.Buffer{}
 	err = m.WritePageNewsTo(buf)
@@ -197,10 +236,18 @@ func Server() int {
 	return 0
 }
 
-type Option func(*MorningPost)
+type Option func(*MorningPost) error
 
 func WithDefaultSources(load bool) Option {
-	return func(m *MorningPost) {
+	return func(m *MorningPost) error {
 		m.loadDefaultSources = load
+		return nil
+	}
+}
+
+func WithShowMaxNews(total int) Option {
+	return func(m *MorningPost) error {
+		m.showMaxNews = total
+		return nil
 	}
 }

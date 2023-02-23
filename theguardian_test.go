@@ -10,17 +10,17 @@ import (
 	"github.com/thiagonache/morningpost"
 )
 
-func TestNewTGClient_SetCorrectHTTPHostByDefault(t *testing.T) {
+func TestNewTheGuardianClient_SetCorrectHTTPHostByDefault(t *testing.T) {
 	t.Parallel()
 	want := "https://content.guardianapis.com"
-	client := morningpost.NewTGClient()
+	client := morningpost.NewTheGuardianClient()
 	got := client.HTTPHost
 	if want != got {
 		t.Fatalf("\n(want) %q\n(got)  %q", want, got)
 	}
 }
 
-func TestTGGetNews_RequestsCorrectURIByDefault(t *testing.T) {
+func TestTheGuardianGetNews_RequestsCorrectURIByDefault(t *testing.T) {
 	t.Parallel()
 	respContent, err := os.ReadFile("testdata/theguardian.json")
 	if err != nil {
@@ -35,7 +35,7 @@ func TestTGGetNews_RequestsCorrectURIByDefault(t *testing.T) {
 		w.Write(respContent)
 	}))
 	defer ts.Close()
-	client := morningpost.NewTGClient()
+	client := morningpost.NewTheGuardianClient()
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
 	os.Setenv("TheGuardianAPIKey", "fake")
@@ -45,7 +45,7 @@ func TestTGGetNews_RequestsCorrectURIByDefault(t *testing.T) {
 	}
 }
 
-func TestTGGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
+func TestTheGuardianGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 	t.Parallel()
 	respContent, err := os.ReadFile("testdata/theguardian.json")
 	if err != nil {
@@ -56,7 +56,7 @@ func TestTGGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 		w.Write(respContent)
 	}))
 	defer ts.Close()
-	client := morningpost.NewTGClient()
+	client := morningpost.NewTheGuardianClient()
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
 	os.Setenv("TheGuardianAPIKey", "fake")
@@ -66,7 +66,7 @@ func TestTGGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 	}
 }
 
-func TestTGGetNews_ErrorsIfEnvVarIsNotSet(t *testing.T) {
+func TestTheGuardianGetNews_ErrorsIfEnvVarIsNotSet(t *testing.T) {
 	//t.Parallel()
 	// this test cannot run in paralell since the API key is set in other tests
 	respContent, err := os.ReadFile("testdata/theguardian.json")
@@ -77,7 +77,7 @@ func TestTGGetNews_ErrorsIfEnvVarIsNotSet(t *testing.T) {
 		w.Write(respContent)
 	}))
 	defer ts.Close()
-	client := morningpost.NewTGClient()
+	client := morningpost.NewTheGuardianClient()
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
 	_, err = client.GetNews()
@@ -92,7 +92,7 @@ func TestParseGuardianResponse_ReturnsExpectedNewsGivenJSONWithOneNews(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := morningpost.ParseTGResponse(input)
+	got, err := morningpost.ParseTheGuardianResponse(input)
 	if err != nil {
 		t.Fatal(err)
 	}

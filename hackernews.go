@@ -6,12 +6,19 @@ import (
 	"net/http"
 )
 
-type HNClient struct {
+type HackerNewsClient struct {
 	HTTPClient *http.Client
 	HTTPHost   string
 }
 
-func (hn HNClient) GetNews() ([]News, error) {
+func NewHackerNewsClient() *HackerNewsClient {
+	return &HackerNewsClient{
+		HTTPClient: &http.Client{},
+		HTTPHost:   "https://news.ycombinator.com",
+	}
+}
+
+func (hn HackerNewsClient) GetNews() ([]News, error) {
 	resp, err := hn.HTTPClient.Get(fmt.Sprintf("%s/rss", hn.HTTPHost))
 	if err != nil {
 		return nil, fmt.Errorf("cannot get %q: %+v", hn.HTTPHost, err)
@@ -25,11 +32,4 @@ func (hn HNClient) GetNews() ([]News, error) {
 		return nil, err
 	}
 	return ParseRSSResponse(data)
-}
-
-func NewHNClient() *HNClient {
-	return &HNClient{
-		HTTPClient: &http.Client{},
-		HTTPHost:   "https://news.ycombinator.com",
-	}
 }

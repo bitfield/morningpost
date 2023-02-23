@@ -8,17 +8,17 @@ import (
 	"github.com/thiagonache/morningpost"
 )
 
-func TestNewHNClient_SetCorrectHTTPHostByDefault(t *testing.T) {
+func TestNewHackerNewsClient_SetCorrectHTTPHostByDefault(t *testing.T) {
 	t.Parallel()
 	want := "https://news.ycombinator.com"
-	client := morningpost.NewHNClient()
+	client := morningpost.NewHackerNewsClient()
 	got := client.HTTPHost
 	if want != got {
 		t.Fatalf("\n(want) %q\n(got)  %q", want, got)
 	}
 }
 
-func TestHNGetNews_RequestsCorrectURIByDefault(t *testing.T) {
+func TestHackerNewsGetNews_RequestsCorrectURIByDefault(t *testing.T) {
 	t.Parallel()
 	want := "/rss"
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +29,7 @@ func TestHNGetNews_RequestsCorrectURIByDefault(t *testing.T) {
 		w.Write(emptyRSSData)
 	}))
 	defer ts.Close()
-	client := morningpost.NewHNClient()
+	client := morningpost.NewHackerNewsClient()
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
 	_, err := client.GetNews()
@@ -38,14 +38,14 @@ func TestHNGetNews_RequestsCorrectURIByDefault(t *testing.T) {
 	}
 }
 
-func TestHNGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
+func TestHackerNewsGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTeapot)
 		w.Write(emptyRSSData)
 	}))
 	defer ts.Close()
-	client := morningpost.NewHNClient()
+	client := morningpost.NewHackerNewsClient()
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
 	_, err := client.GetNews()

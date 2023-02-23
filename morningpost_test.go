@@ -9,10 +9,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/rogpeppe/go-internal/testscript"
 	"github.com/thiagonache/morningpost"
 )
 
-var emptyRSSData = []byte("<rss></rss>")
+var (
+	emptyJSONData = []byte("{}")
+	emptyRSSData  = []byte("<rss></rss>")
+)
 
 func TestParseRSS_ReturnsExpectedNewsGivenRSSWithTwoNews(t *testing.T) {
 	t.Parallel()
@@ -30,6 +34,14 @@ func TestParseRSS_ReturnsExpectedNewsGivenRSSWithTwoNews(t *testing.T) {
 	}
 	if !cmp.Equal(want, got) {
 		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestParseRSS_ErrorsIfDataIsNotXML(t *testing.T) {
+	t.Parallel()
+	_, err := morningpost.ParseRSSResponse(emptyJSONData)
+	if err == nil {
+		t.Fatalf("want error but not found")
 	}
 }
 
@@ -64,6 +76,14 @@ func TestGetRSSFeed_ReturnsExpectedNewsGivenRSSWithTwoNews(t *testing.T) {
 	}
 }
 
+func TestGetRSSFeed_ErrorsIfHTTPRequestFails(t *testing.T) {
+	t.Parallel()
+	_, err := morningpost.GetRSSFeed("bogus")
+	if err == nil {
+		t.Fatal("want error but not found")
+	}
+}
+
 func TestGetRSSFeed_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -76,29 +96,29 @@ func TestGetRSSFeed_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 	}
 }
 
-func TestNewMorningPost_SetProperTemplatePathByDefault(t *testing.T) {
-	t.Parallel()
-	want := "output.html.tpl"
-	m, err := morningpost.New()
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := m.TemplatePath
-	if want != got {
-		t.Fatalf("want template path %q but got %q", want, got)
-	}
-}
-
-func TestNewMorningPost_SetProperShowMaxNewsByDefault(t *testing.T) {
+func TestNew_SetProperShowMaxNewsByDefault(t *testing.T) {
 	t.Parallel()
 	want := 20
 	m, err := morningpost.New()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := m.ShowMaxNews
+	got := m.ShowMaxNews()
 	if want != got {
 		t.Fatalf("want ShowMaxNews %d but got %d", want, got)
+	}
+}
+
+func TestNew_SetProperOutputByDefault(t *testing.T) {
+	t.Parallel()
+	want := "browser"
+	m, err := morningpost.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := m.Output
+	if want != got {
+		t.Fatalf("want output %q but got %q", want, got)
 	}
 }
 
@@ -188,6 +208,7 @@ func TestRandomNews_SetProperNumberPageNewsGivenRSSWithTwoNews(t *testing.T) {
 	want := 1
 	m, err := morningpost.New(
 		morningpost.WithDefaultSources(false),
+		morningpost.WithShowMaxNews(1),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -196,7 +217,6 @@ func TestRandomNews_SetProperNumberPageNewsGivenRSSWithTwoNews(t *testing.T) {
 		{Title: "RSS Solutions for Restaurants", URL: "http://www.feedforall.com/restaurant.htm"},
 		{Title: "RSS Solutions for Schools and Colleges", URL: "http://www.feedforall.com/schools.htm"},
 	}
-	m.ShowMaxNews = 1
 	err = m.RandomNews()
 	if err != nil {
 		t.Fatal(err)
@@ -209,14 +229,16 @@ func TestRandomNews_SetProperNumberPageNewsGivenRSSWithTwoNews(t *testing.T) {
 
 func TestWritePageNewsTo_RenderProperTemplateContentGivenTwoNews(t *testing.T) {
 	t.Parallel()
-	want := `<html>
-  <title>ThiagosNews</title>
+	want := `<html lang="en">
+  <head>
+    <title>ThiagosNews</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" rel="stylesheet">
+  </head>
   <body>
-    
-    <a href="http://www.feedforall.com/restaurant.htm">RSS Solutions for Restaurants</a><br />
-    
-    <a href="http://www.feedforall.com/schools.htm">RSS Solutions for Schools and Colleges</a><br />
-    
+    <div class="list-group">
+      <li class="list-group-item"><a href="http://www.feedforall.com/restaurant.htm">RSS Solutions for Restaurants</a></li>
+      <li class="list-group-item"><a href="http://www.feedforall.com/schools.htm">RSS Solutions for Schools and Colleges</a></li>
+    </div>
   </body>
 </html>
 `
@@ -239,13 +261,11 @@ func TestWritePageNewsTo_RenderProperTemplateContentGivenTwoNews(t *testing.T) {
 	}
 }
 
-func TestNewMorningPost_LoadsDefaultSourcesByDefault(t *testing.T) {
+func TestNew_LoadsDefaultSourcesByDefault(t *testing.T) {
 	t.Parallel()
 	want := []morningpost.Source{
-		morningpost.NewHNClient(),
-		morningpost.NewTGClient(),
+		morningpost.NewHackerNewsClient(),
 		morningpost.NewTechCrunchClient(),
-		morningpost.NewBITClient(),
 	}
 	m, err := morningpost.New()
 	if err != nil {
@@ -254,6 +274,19 @@ func TestNewMorningPost_LoadsDefaultSourcesByDefault(t *testing.T) {
 	got := m.Sources
 	if !cmp.Equal(want, got) {
 		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestNew_SetProperPageNewsSizeByDefault(t *testing.T) {
+	t.Parallel()
+	want := 20
+	m, err := morningpost.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := len(m.PageNews)
+	if want != got {
+		t.Fatalf("want PageNews size of %d but got %d", want, got)
 	}
 }
 
@@ -268,4 +301,65 @@ func TestWithDefaultSources_SetToFalseLoadsNoSources(t *testing.T) {
 	if m.Sources != nil {
 		t.Fatalf("want sources to be nil but found %#v", m.Sources)
 	}
+}
+
+func TestWithShowMaxNews_SetPageNewsProperPageNewsSize(t *testing.T) {
+	t.Parallel()
+	want := 10
+	m, err := morningpost.New(
+		morningpost.WithShowMaxNews(10),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := len(m.PageNews)
+	if want != got {
+		t.Fatalf("want PageNews size of %d but got %d", want, got)
+	}
+}
+
+func TestString_PrintsExpectedMessageGivenTwoNews(t *testing.T) {
+	t.Parallel()
+	want := `RSS Solutions for Restaurants [http://www.feedforall.com/restaurant.htm]
+RSS Solutions for Schools and Colleges [http://www.feedforall.com/schools.htm]`
+	m, err := morningpost.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.PageNews = []morningpost.News{
+		{Title: "RSS Solutions for Restaurants", URL: "http://www.feedforall.com/restaurant.htm"},
+		{Title: "RSS Solutions for Schools and Colleges", URL: "http://www.feedforall.com/schools.htm"},
+	}
+	got := m.String()
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFromArgs_OFlagSetOutput(t *testing.T) {
+	t.Parallel()
+	want := "terminal"
+	args := []string{"-o", "terminal"}
+	m, err := morningpost.New(
+		morningpost.FromArgs(args),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := m.Output
+	if want != got {
+		t.Errorf("wants -o flag to set output to %q, got %q", want, got)
+	}
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(testscript.RunMain(m, map[string]func() int{
+		"morningpost": morningpost.Main,
+	}))
+}
+
+func TestScript(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir: "testdata/script",
+	})
 }
