@@ -24,7 +24,7 @@ var content embed.FS
 
 const (
 	defaultOutput      = "browser"
-	defaultShowMaxNews = 20
+	defaultShowMaxNews = 15
 	serverListenAddr   = ":33000"
 )
 
@@ -107,7 +107,11 @@ func New(opts ...Option) (*MorningPost, error) {
 	}
 	m.PageNews = make([]News, m.ShowMaxNews())
 	if m.loadDefaultSources {
-		m.Sources = append(m.Sources, []Source{NewHackerNewsClient(), NewTechCrunchClient()}...)
+		m.Sources = append(m.Sources, []Source{
+			NewHackerNewsClient(),
+			NewTechCrunchClient(),
+			NewCNNClient(),
+		}...)
 	}
 	tpl, err := template.ParseFS(content, "output.html.tpl")
 	if err != nil {
@@ -205,36 +209,36 @@ func Main() int {
 	return 0
 }
 
-func Server() int {
-	m, err := New()
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	}
-	err = m.GetNews()
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	}
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		err := m.RandomNews()
-		if err != nil {
-			fmt.Fprintln(w, err)
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		err = m.WritePageNewsTo(w)
-		if err != nil {
-			w.WriteHeader(http.StatusBadGateway)
-		}
-	}
-	fmt.Printf("Starting server on %s\n", serverListenAddr)
-	if err := http.ListenAndServe(serverListenAddr, http.HandlerFunc(handler)); err != nil {
-		fmt.Println(err)
-		return 1
-	}
-	return 0
-}
+// func Server() int {
+// 	m, err := New()
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return 1
+// 	}
+// 	err = m.GetNews()
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return 1
+// 	}
+// 	handler := func(w http.ResponseWriter, r *http.Request) {
+// 		err := m.RandomNews()
+// 		if err != nil {
+// 			fmt.Fprintln(w, err)
+// 			w.WriteHeader(http.StatusBadGateway)
+// 			return
+// 		}
+// 		err = m.WritePageNewsTo(w)
+// 		if err != nil {
+// 			w.WriteHeader(http.StatusBadGateway)
+// 		}
+// 	}
+// 	fmt.Printf("Starting server on %s\n", serverListenAddr)
+// 	if err := http.ListenAndServe(serverListenAddr, http.HandlerFunc(handler)); err != nil {
+// 		fmt.Println(err)
+// 		return 1
+// 	}
+// 	return 0
+// }
 
 type Option func(*MorningPost) error
 

@@ -13,21 +13,23 @@ const GuardianStatusOK = "ok"
 type TheGuardianClient struct {
 	HTTPClient *http.Client
 	HTTPHost   string
+	URI        string
 }
 
-func NewTheGuardianClient() *TheGuardianClient {
+func NewTheGuardianClient() (*TheGuardianClient, error) {
+	apiKey := os.Getenv("TheGuardianAPIKey")
+	if apiKey == "" {
+		return nil, fmt.Errorf("OS environment variable TheGuardianAPIKey not found")
+	}
 	return &TheGuardianClient{
 		HTTPClient: http.DefaultClient,
 		HTTPHost:   "https://content.guardianapis.com",
-	}
+		URI:        fmt.Sprintf("search?api-key=%s", apiKey),
+	}, nil
 }
 
-func (tg TheGuardianClient) GetNews() ([]News, error) {
-	apiKey := os.Getenv("TheGuardianAPIKey")
-	if apiKey == "" {
-		return nil, fmt.Errorf("[TheGuardian] => OS environment variable TheGuardianAPIKey not found")
-	}
-	resp, err := tg.HTTPClient.Get(fmt.Sprintf("%s/search?api-key=%s", tg.HTTPHost, apiKey))
+func (t TheGuardianClient) GetNews() ([]News, error) {
+	resp, err := t.HTTPClient.Get(fmt.Sprintf("%s/%s", t.HTTPHost, t.URI))
 	if err != nil {
 		return nil, err
 	}

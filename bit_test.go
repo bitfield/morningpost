@@ -14,7 +14,17 @@ func TestNewBITClient_SetCorrectHTTPHostByDefault(t *testing.T) {
 	client := morningpost.NewBITClient()
 	got := client.HTTPHost
 	if want != got {
-		t.Fatalf("\n(want) %q\n(got)  %q", want, got)
+		t.Fatalf("Wrong HTTP host\n(want) %q\n(got)  %q", want, got)
+	}
+}
+
+func TestNewBITClient_SetCorrectURIByDefault(t *testing.T) {
+	t.Parallel()
+	want := "golang?format=rss"
+	client := morningpost.NewBITClient()
+	got := client.URI
+	if want != got {
+		t.Fatalf("Wrong URI\n(want) %q\n(got)  %q", want, got)
 	}
 }
 
@@ -48,6 +58,16 @@ func TestBITGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 	client := morningpost.NewBITClient()
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
+	_, err := client.GetNews()
+	if err == nil {
+		t.Fatal("want error but not found")
+	}
+}
+
+func TestBITGetNews_ErrorsIfHTTPRequestErrors(t *testing.T) {
+	t.Parallel()
+	client := morningpost.NewBITClient()
+	client.HTTPHost = "bogus"
 	_, err := client.GetNews()
 	if err == nil {
 		t.Fatal("want error but not found")

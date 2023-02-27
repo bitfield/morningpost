@@ -18,6 +18,16 @@ func TestNewHackerNewsClient_SetCorrectHTTPHostByDefault(t *testing.T) {
 	}
 }
 
+func TestNewHackerNewsClient_SetCorrectURIByDefault(t *testing.T) {
+	t.Parallel()
+	want := "rss"
+	client := morningpost.NewHackerNewsClient()
+	got := client.URI
+	if want != got {
+		t.Fatalf("Wrong URI\n(want) %q\n(got)  %q", want, got)
+	}
+}
+
 func TestHackerNewsGetNews_RequestsCorrectURIByDefault(t *testing.T) {
 	t.Parallel()
 	want := "/rss"
@@ -48,6 +58,16 @@ func TestHackerNewsGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 	client := morningpost.NewHackerNewsClient()
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
+	_, err := client.GetNews()
+	if err == nil {
+		t.Fatal("want error but not found")
+	}
+}
+
+func TestHackerNewsGetNews_ErrorsIfHTTPRequestErrors(t *testing.T) {
+	t.Parallel()
+	client := morningpost.NewHackerNewsClient()
+	client.HTTPHost = "bogus"
 	_, err := client.GetNews()
 	if err == nil {
 		t.Fatal("want error but not found")

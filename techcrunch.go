@@ -9,17 +9,19 @@ import (
 type TechCrunchClient struct {
 	HTTPClient *http.Client
 	HTTPHost   string
+	URI        string
 }
 
 func NewTechCrunchClient() *TechCrunchClient {
 	return &TechCrunchClient{
 		HTTPClient: &http.Client{},
 		HTTPHost:   "https://techcrunch.com",
+		URI:        "feed/",
 	}
 }
 
-func (tc TechCrunchClient) GetNews() ([]News, error) {
-	resp, err := tc.HTTPClient.Get(fmt.Sprintf("%s/feed/", tc.HTTPHost))
+func (t TechCrunchClient) GetNews() ([]News, error) {
+	resp, err := t.HTTPClient.Get(fmt.Sprintf("%s/%s", t.HTTPHost, t.URI))
 	if err != nil {
 		return nil, err
 	}

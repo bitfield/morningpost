@@ -13,10 +13,28 @@ import (
 func TestNewTheGuardianClient_SetCorrectHTTPHostByDefault(t *testing.T) {
 	t.Parallel()
 	want := "https://content.guardianapis.com"
-	client := morningpost.NewTheGuardianClient()
+	os.Setenv("TheGuardianAPIKey", "fake")
+	client, err := morningpost.NewTheGuardianClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 	got := client.HTTPHost
 	if want != got {
 		t.Fatalf("\n(want) %q\n(got)  %q", want, got)
+	}
+}
+
+func TestNewTheGuardianClient_SetCorrectURIByDefault(t *testing.T) {
+	t.Parallel()
+	want := "search?api-key=fake"
+	os.Setenv("TheGuardianAPIKey", "fake")
+	client, err := morningpost.NewTheGuardianClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := client.URI
+	if want != got {
+		t.Fatalf("Wrong URI\n(want) %q\n(got)  %q", want, got)
 	}
 }
 
@@ -35,10 +53,13 @@ func TestTheGuardianGetNews_RequestsCorrectURIByDefault(t *testing.T) {
 		w.Write(respContent)
 	}))
 	defer ts.Close()
-	client := morningpost.NewTheGuardianClient()
+	os.Setenv("TheGuardianAPIKey", "fake")
+	client, err := morningpost.NewTheGuardianClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
-	os.Setenv("TheGuardianAPIKey", "fake")
 	_, err = client.GetNews()
 	if err != nil {
 		t.Fatal(err)
@@ -56,28 +77,11 @@ func TestTheGuardianGetNews_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) 
 		w.Write(respContent)
 	}))
 	defer ts.Close()
-	client := morningpost.NewTheGuardianClient()
-	client.HTTPHost = ts.URL
-	client.HTTPClient = ts.Client()
 	os.Setenv("TheGuardianAPIKey", "fake")
-	_, err = client.GetNews()
-	if err == nil {
-		t.Fatal("want error but not found")
-	}
-}
-
-func TestTheGuardianGetNews_ErrorsIfEnvVarIsNotSet(t *testing.T) {
-	//t.Parallel()
-	// this test cannot run in paralell since the API key is set in other tests
-	respContent, err := os.ReadFile("testdata/theguardian.json")
+	client, err := morningpost.NewTheGuardianClient()
 	if err != nil {
 		t.Fatal(err)
 	}
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(respContent)
-	}))
-	defer ts.Close()
-	client := morningpost.NewTheGuardianClient()
 	client.HTTPHost = ts.URL
 	client.HTTPClient = ts.Client()
 	_, err = client.GetNews()
@@ -86,7 +90,16 @@ func TestTheGuardianGetNews_ErrorsIfEnvVarIsNotSet(t *testing.T) {
 	}
 }
 
-func TestParseGuardianResponse_ReturnsExpectedNewsGivenJSONWithOneNews(t *testing.T) {
+func TestNewTheGuardianClient_ErrorsIfEnvVarIsNotSet(t *testing.T) {
+	//t.Parallel()
+	// this test cannot run in paralell since the API key is set in other tests
+	_, err := morningpost.NewTheGuardianClient()
+	if err == nil {
+		t.Fatal("want error but not found")
+	}
+}
+
+func TestParseTheGuardianResponse_ReturnsExpectedNewsGivenJSONWithOneNews(t *testing.T) {
 	t.Parallel()
 	input, err := os.ReadFile("testdata/theguardian.json")
 	if err != nil {
@@ -104,5 +117,35 @@ func TestParseGuardianResponse_ReturnsExpectedNewsGivenJSONWithOneNews(t *testin
 	}
 	if !cmp.Equal(want, got) {
 		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestTheGuardianGetNews_ErrorsIfHTTPRequestErrors(t *testing.T) {
+	t.Parallel()
+	os.Setenv("TheGuardianAPIKey", "fake")
+	client, err := morningpost.NewTheGuardianClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	client.HTTPHost = "bogus"
+	_, err = client.GetNews()
+	if err == nil {
+		t.Fatal("want error but not found")
+	}
+}
+
+func TestParseTheGuardianResponse_ErrorsIfDataIsNotJSON(t *testing.T) {
+	t.Parallel()
+	_, err := morningpost.ParseTheGuardianResponse(emptyRSSData)
+	if err == nil {
+		t.Fatal("want error but not found")
+	}
+}
+
+func TestParseTheGuardianResponse_ErrorsIfResponseStatusIsNotGuardianStatusOK(t *testing.T) {
+	t.Parallel()
+	_, err := morningpost.ParseTheGuardianResponse(emptyJSONData)
+	if err == nil {
+		t.Fatal("want error but not found")
 	}
 }

@@ -9,19 +9,21 @@ import (
 type HackerNewsClient struct {
 	HTTPClient *http.Client
 	HTTPHost   string
+	URI        string
 }
 
 func NewHackerNewsClient() *HackerNewsClient {
 	return &HackerNewsClient{
 		HTTPClient: &http.Client{},
 		HTTPHost:   "https://news.ycombinator.com",
+		URI:        "rss",
 	}
 }
 
-func (hn HackerNewsClient) GetNews() ([]News, error) {
-	resp, err := hn.HTTPClient.Get(fmt.Sprintf("%s/rss", hn.HTTPHost))
+func (h HackerNewsClient) GetNews() ([]News, error) {
+	resp, err := h.HTTPClient.Get(fmt.Sprintf("%s/%s", h.HTTPHost, h.URI))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get %q: %+v", hn.HTTPHost, err)
+		return nil, fmt.Errorf("cannot get %q: %+v", h.HTTPHost, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

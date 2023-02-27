@@ -98,7 +98,7 @@ func TestGetRSSFeed_ErrorsIfResponseCodeIsNotHTTPStatusOK(t *testing.T) {
 
 func TestNew_SetProperShowMaxNewsByDefault(t *testing.T) {
 	t.Parallel()
-	want := 20
+	want := 15
 	m, err := morningpost.New()
 	if err != nil {
 		t.Fatal(err)
@@ -266,6 +266,7 @@ func TestNew_LoadsDefaultSourcesByDefault(t *testing.T) {
 	want := []morningpost.Source{
 		morningpost.NewHackerNewsClient(),
 		morningpost.NewTechCrunchClient(),
+		morningpost.NewCNNClient(),
 	}
 	m, err := morningpost.New()
 	if err != nil {
@@ -279,7 +280,7 @@ func TestNew_LoadsDefaultSourcesByDefault(t *testing.T) {
 
 func TestNew_SetProperPageNewsSizeByDefault(t *testing.T) {
 	t.Parallel()
-	want := 20
+	want := 15
 	m, err := morningpost.New()
 	if err != nil {
 		t.Fatal(err)
