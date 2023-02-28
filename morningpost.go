@@ -26,6 +26,7 @@ const (
 	defaultOutput      = "browser"
 	defaultShowMaxNews = 15
 	serverListenAddr   = ":33000"
+	defaultHTTPTimeout = 5 * time.Second
 )
 
 type Source interface {

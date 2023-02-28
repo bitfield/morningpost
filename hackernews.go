@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type HackerNewsClient struct {
@@ -14,9 +15,11 @@ type HackerNewsClient struct {
 
 func NewHackerNewsClient() *HackerNewsClient {
 	return &HackerNewsClient{
-		HTTPClient: &http.Client{},
-		HTTPHost:   "https://news.ycombinator.com",
-		URI:        "rss",
+		HTTPClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+		HTTPHost: "https://news.ycombinator.com",
+		URI:      "rss",
 	}
 }
 

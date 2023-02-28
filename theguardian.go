@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 const GuardianStatusOK = "ok"
@@ -22,9 +23,11 @@ func NewTheGuardianClient() (*TheGuardianClient, error) {
 		return nil, fmt.Errorf("OS environment variable TheGuardianAPIKey not found")
 	}
 	return &TheGuardianClient{
-		HTTPClient: http.DefaultClient,
-		HTTPHost:   "https://content.guardianapis.com",
-		URI:        fmt.Sprintf("search?api-key=%s", apiKey),
+		HTTPClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+		HTTPHost: "https://content.guardianapis.com",
+		URI:      fmt.Sprintf("search?api-key=%s", apiKey),
 	}, nil
 }
 

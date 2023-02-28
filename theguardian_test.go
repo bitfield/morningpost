@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/thiagonache/morningpost"
@@ -35,6 +36,20 @@ func TestNewTheGuardianClient_SetCorrectURIByDefault(t *testing.T) {
 	got := client.URI
 	if want != got {
 		t.Fatalf("Wrong URI\n(want) %q\n(got)  %q", want, got)
+	}
+}
+
+func TestNewTheGuardianClient_SetCorrectHTTPTimeoutByDefault(t *testing.T) {
+	t.Parallel()
+	want := 5 * time.Second
+	os.Setenv("TheGuardianAPIKey", "fake")
+	client, err := morningpost.NewTheGuardianClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := client.HTTPClient.Timeout
+	if want != got {
+		t.Fatalf("Wrong timeout\n(want) %q\n(got)  %q", want, got)
 	}
 }
 

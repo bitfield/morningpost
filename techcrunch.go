@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type TechCrunchClient struct {
@@ -14,9 +15,11 @@ type TechCrunchClient struct {
 
 func NewTechCrunchClient() *TechCrunchClient {
 	return &TechCrunchClient{
-		HTTPClient: &http.Client{},
-		HTTPHost:   "https://techcrunch.com",
-		URI:        "feed/",
+		HTTPClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+		HTTPHost: "https://techcrunch.com",
+		URI:      "feed/",
 	}
 }
 

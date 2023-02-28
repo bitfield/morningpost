@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/thiagonache/morningpost"
 )
@@ -25,6 +26,16 @@ func TestNewHackerNewsClient_SetCorrectURIByDefault(t *testing.T) {
 	got := client.URI
 	if want != got {
 		t.Fatalf("Wrong URI\n(want) %q\n(got)  %q", want, got)
+	}
+}
+
+func TestNewHackerNewsClient_SetCorrectHTTPTimeoutByDefault(t *testing.T) {
+	t.Parallel()
+	want := 5 * time.Second
+	client := morningpost.NewHackerNewsClient()
+	got := client.HTTPClient.Timeout
+	if want != got {
+		t.Fatalf("Wrong timeout\n(want) %q\n(got)  %q", want, got)
 	}
 }
 

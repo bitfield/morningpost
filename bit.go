@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type BITClient struct {
@@ -14,9 +15,11 @@ type BITClient struct {
 
 func NewBITClient() *BITClient {
 	return &BITClient{
-		HTTPClient: &http.Client{},
-		HTTPHost:   "https://bitfieldconsulting.com",
-		URI:        "golang?format=rss",
+		HTTPClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+		HTTPHost: "https://bitfieldconsulting.com",
+		URI:      "golang?format=rss",
 	}
 }
 

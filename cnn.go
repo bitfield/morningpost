@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type CNNClient struct {
@@ -14,9 +15,11 @@ type CNNClient struct {
 
 func NewCNNClient() *CNNClient {
 	return &CNNClient{
-		HTTPClient: &http.Client{},
-		HTTPHost:   "http://rss.cnn.com",
-		URI:        "rss/cnn_topstories.rss",
+		HTTPClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+		HTTPHost: "http://rss.cnn.com",
+		URI:      "rss/cnn_topstories.rss",
 	}
 }
 
