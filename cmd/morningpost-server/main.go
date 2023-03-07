@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	os.Exit(morningpost.Main())
+	os.Exit(morningpost.Server())
 }

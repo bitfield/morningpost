@@ -1,0 +1,2 @@
+exec morningpost -o terminal
+! stdout ""

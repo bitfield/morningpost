@@ -1,0 +1,27 @@
+{
+  "response": {
+    "status": "ok",
+    "userTier": "developer",
+    "total": 1,
+    "startIndex": 1,
+    "pageSize": 10,
+    "currentPage": 1,
+    "pages": 1,
+    "orderBy": "newest",
+    "results": [
+      {
+        "id": "sport/live/2023/jan/16/bogus-2023-wow",
+        "type": "liveblog",
+        "sectionId": "sport",
+        "sectionName": "Sport",
+        "webPublicationDate": "2023-01-16T10:24:23Z",
+        "webTitle": "Australian Open 2023 day one: Norrie and Tsitsipas through, Swiatek in action – live",
+        "webUrl": "https://www.theguardian.com/sport/live/2023/jan/16/australian-open-2023-day-one-swiatek-tsitsipas-and-medvedev-in-action-live",
+        "apiUrl": "https://content.guardianapis.com/sport/live/2023/jan/16/australian-open-2023-day-one-swiatek-tsitsipas-and-medvedev-in-action-live",
+        "isHosted": false,
+        "pillarId": "pillar/sport",
+        "pillarName": "Sport"
+      }
+    ]
+  }
+}
