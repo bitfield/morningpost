@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="html">Chris&#39;s Wiki :: blog</title>
+  <link rel="alternate" type="text/html" href="https://utcc.utoronto.ca/~cks/space/blog/" />
+  <id>https://utcc.utoronto.ca/~cks/space/blog/?atom</id>
+  <link rel="self" type="application/atom+xml" href="https://utcc.utoronto.ca/~cks/space/blog/?atom" />
+  <generator>DWiki</generator>
+  <updated>2023-03-10T03:39:52Z</updated>
+  <subtitle type="html">Recently changed pages in Chris&#39;s Wiki :: blog.</subtitle>
+  <entry>
+    <id>tag:cspace@cks.mef.org,2009-03-24:/blog/linux/ZFSAndNFSMountInvalidation</id>
+    <link rel="alternate" type="text/html" href="https://utcc.utoronto.ca/~cks/space/blog/linux/ZFSAndNFSMountInvalidation" />
+    <author>
+      <name>cks</name>
+    </author>
+    <content type="html">&lt;div class=&quot;wikitext&quot;&gt;&lt;p&gt;Suppose that you have &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/linux/ZFSFileserverSetupIII&quot;&gt;ZFS based NFS servers&lt;/a&gt;
+that you&#39;re changing from Ubuntu 18.04 to 22.04. These servers have
+a lot of NFS exported filesystems that are mounted and used by a
+lot of clients, so it would be very convenient if you could upgrade
+the ZFS fileservers without having to unmount and remount the
+filesystems on all of your clients. Conversely, if a particular way
+of moving from 18.04 to 22.04 is going to require you to unmount
+all of its filesystems, you&#39;d like to know that in advance so you
+can prepare for it, rather than find out after the fact when clients
+start getting &#39;stale NFS handle&#39; errors. Since we&#39;ve just been
+through some experiences with this, I&#39;m going to write down what
+we&#39;ve observed.&lt;/p&gt;
+
+&lt;p&gt;There are at least three ways to move a ZFS fileserver from Ubuntu
+18.04 to Ubuntu 22.04. I&#39;ll skip upgrading it in place because we
+don&#39;t have any experience with that; &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/linux/WhyNotInplaceOSUpgrades&quot;&gt;we upgrade machines by
+reinstalling them from scratch&lt;/a&gt;. That
+leaves two approaches for a ZFS server, which I will call a &lt;em&gt;forklift
+upgrade&lt;/em&gt; and a &lt;em&gt;migration&lt;/em&gt;. In a forklift upgrade, you build new
+system disks, then swap them in by exporting the ZFS pools, changing
+system disks, booting your new 22.04 system, and importing the pools
+back.&lt;/p&gt;
+
+&lt;p&gt;(As a version of the forklift upgrade you can reuse your current
+system disks, although this means you can&#39;t readily revert.)&lt;/p&gt;
+
+&lt;p&gt;Our experience with these in place &#39;export pools, swap system disks,
+import pools&#39; forklift upgrades is that client NFSv3 mounts survive
+over them. Your NFS clients will stall while your ZFS NFS server
+goes away for a while, but once it&#39;s back (under the right host
+name and IP address), they resume their activities and things pick
+right back up where they were. We&#39;ve also had no problems with ZFS
+pools when we reboot our servers with changed hostnames; changing
+the server&#39;s hostname doesn&#39;t cause ZFS on Linux to not bring the
+pools up on boot.&lt;/p&gt;
+
+&lt;p&gt;However, forklift upgrades can only be done on ZFS fileservers where
+you have separate system disks and ZFS pool disks. &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/sysadmin/LocalVarMailImprovement&quot;&gt;We have one
+fileserver where this isn&#39;t possible&lt;/a&gt;;
+it has only four disks and shares all of them between system
+filesystems and its ZFS pool. For this machine we did a &lt;em&gt;migration&lt;/em&gt;,
+where we built a new version of the system using new disks on new
+hardware, then moved the ZFS data over with ZFS snapshots (&lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/sysadmin/UpgradingMachinesWithState&quot;&gt;as I
+thought we might have to&lt;/a&gt;).
+Once the data was migrated, we shut down the old server and made
+the new hardware take over the name, IP address, and so on.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately for us, when we did this migration, NFS clients got
+stale NFS mounts. The new version of this fileserver had the same
+filesystem with the exact same contents (ZFS snapshots and snapshot
+replication insures that), the same exports, and so on, but &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/unix/NFSFilehandleInternals&quot;&gt;the
+NFS filehandles&lt;/a&gt; came out different.
+It&#39;s possible that we could have worked around this if we had set
+an explicit &#39;&lt;code&gt;fsid=&lt;/code&gt;&#39; value in our NFS export for the filesystem
+(as per &lt;a href=&quot;https://man7.org/linux/man-pages/man5/exports.5.html&quot;&gt;&lt;code&gt;exports(5)&lt;/code&gt;&lt;/a&gt;), but it&#39;s
+also possible that there were other differences in the NFS filehandle.&lt;/p&gt;
+
+&lt;p&gt;(ZFS has a notion of a &#39;fsid&#39; and a &#39;guid&#39; for ZFS filesystems
+(okay, datasets), and zdb can in theory dump this information, but
+right now I can&#39;t work out how to go from a filesystem name in a
+pool to reading out its ZFS fsid, so I can&#39;t see if it&#39;s preserved
+over ZFS snapshot replication or if the receiver generates a new
+one.)&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&gt; (&lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/linux/ZFSAndNFSMountInvalidation?showcomments#comments&quot;&gt;One comment&lt;/a&gt;.) &lt;/div&gt;</content>
+    <title type="html">ZFS on Linux and when you get stale NFSv3 mounts</title>
+    <category term="linux"/>
+    <updated>2023-03-10T03:39:52Z</updated>
+    <published>2023-03-10T03:38:51Z</published>
+  </entry>
+  <entry>
+    <id>tag:cspace@cks.mef.org,2009-03-24:/blog/linux/DebconfWhiptailVsXterm</id>
+    <link rel="alternate" type="text/html" href="https://utcc.utoronto.ca/~cks/space/blog/linux/DebconfWhiptailVsXterm" />
+    <author>
+      <name>cks</name>
+    </author>
+    <content type="html">&lt;div class=&quot;wikitext&quot;&gt;&lt;p&gt;Every so often I install or upgrade a package by hand on one of
+&lt;a href=&quot;https://support.cs.toronto.edu/&quot;&gt;our&lt;/a&gt; Ubuntu servers and the
+package stops to ask me questions, because &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/linux/UbuntuUpdateProcessDislike&quot;&gt;that is a thing that
+Debian packages can do&lt;/a&gt;. Usually this
+is pretty close to fatal, because &lt;a href=&quot;https://mastodon.social/@cks/109982648901372273&quot;&gt;in my normal xterm environment,
+the default interactive interface Debconf uses for this doesn&#39;t
+work&lt;/a&gt;. Specifically,
+there is no way to see what the current selection theoretically is,
+which leaves me flying blind in picking an answer.&lt;/p&gt;
+
+&lt;p&gt;The ultimate cause for this turns out to be that &lt;strong&gt;the &lt;a href=&quot;https://manpages.debian.org/bullseye/whiptail/whiptail.1.en.html&quot;&gt;&lt;code&gt;whiptail&lt;/code&gt;&lt;/a&gt;
+program doesn&#39;t work in an &lt;a href=&quot;https://invisible-island.net/xterm/&quot;&gt;xterm&lt;/a&gt;
+that has colour turned off&lt;/strong&gt;. Whiptail is &lt;a href=&quot;https://manpages.debian.org/bullseye/debconf-doc/debconf.7.en.html#Frontends&quot;&gt;the default program
+used for the default &#39;dialog&#39; debconf frontend&lt;/a&gt;
+(&lt;a href=&quot;https://kolektiva.social/@Anarcat/109982789634101272&quot;&gt;thanks to @anarcat for telling me about this&lt;/a&gt;). Contrary
+to what I thought before I tried it, whiptail doesn&#39;t intrinsically
+require colour, as it will work if you claim your xterm is, say, a
+VT100 (with eg &#39;&lt;code&gt;export TERM=vt100&lt;/code&gt;&#39;). The alternative &lt;a href=&quot;https://manpages.debian.org/bullseye/dialog/dialog.1.en.html&quot;&gt;&lt;code&gt;dialog&lt;/code&gt;&lt;/a&gt;
+program works fine if your xterm has had its colours forced off,
+and &lt;a href=&quot;https://manpages.debian.org/bullseye/debconf-doc/debconf.7.en.html#DEBCONF_FORCE_DIALOG&quot;&gt;you can force debconf to use dialog instead of whiptail&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;(In a terminal environment that it thinks can do colour, whiptail relies
+on colour to highlight your selection so you know what it is. If the
+terminal is not actually displaying colour, this goes badly.)&lt;/p&gt;
+
+&lt;p&gt;Xterm is relatively unique in X terminal programs in that it supports
+text colours but allows you to turn them off at runtime as a command
+line option (or an X resource setting, &lt;a href=&quot;https://mastodon.social/@cks/109982924464399854&quot;&gt;which is what I use&lt;/a&gt;). I disable terminal
+colours whenever I can because they&#39;re almost always hard for me to
+read, especially in the generally rather intense colour set that xterm
+uses (&lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/unix/TerminalColoursNotTheSame&quot;&gt;X terminal programs aren&#39;t consistent about what text colours
+look like&lt;/a&gt;, so the experiences of
+people using Gnome Terminal are different here). Unfortunately, once
+you&#39;ve started xterm with colours off, as far as I know there&#39;s no way
+to turn them back on.&lt;/p&gt;
+
+&lt;p&gt;(There is probably some escape sequences that can be used to query
+xterm to see if it currently supports colours. I suspect that my odds
+of getting the authors of &lt;a href=&quot;https://manpages.debian.org/bullseye/whiptail/whiptail.1.en.html&quot;&gt;&lt;code&gt;whiptail&lt;/code&gt;&lt;/a&gt; to use them are functionally
+zero.)&lt;/p&gt;
+
+&lt;p&gt;There are an assortment of manual workarounds, such as setting
+various environment variables before running apt-get. The practical
+problem is that, &lt;a href=&quot;https://mastodon.social/@cks/109982824003312269&quot;&gt;to quote myself from the Fediverse&lt;/a&gt;:&lt;/p&gt;
+
+&lt;blockquote&gt;&lt;p&gt;The broad problem is that Ubuntu and Debian package installs/updates
+infrequently and irregularly ambush me with this and the default
+configuration doesn&#39;t work. If I expect it I have many workarounds,
+but generally I don&#39;t. And I&#39;ll never remember to always, 100% of the
+time deploy the workarounds on all of our servers all of the time, no
+matter what I&#39;m doing.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;In theory debconf supports not even asking you questions, in the
+form of &lt;a href=&quot;https://manpages.debian.org/bullseye/debconf-doc/debconf.7.en.html#noninteractive&quot;&gt;the &lt;code&gt;noninteractive&lt;/code&gt; frontend&lt;/a&gt;.
+In practice I don&#39;t have enough confidence in Debian packages or
+especially Ubuntu&#39;s version of them behaving sensibly when they&#39;re
+forced into non-interactive mode. The very nature of being able to
+ask questions means that people don&#39;t necessarily feel compelled
+to make the default answer a sensible one.&lt;/p&gt;
+
+&lt;p&gt;Possibly the right answer for us is to deploy a general system
+setting on our servers to prefer &lt;a href=&quot;https://manpages.debian.org/bullseye/dialog/dialog.1.en.html&quot;&gt;&lt;code&gt;dialog&lt;/code&gt;&lt;/a&gt; over &lt;a href=&quot;https://manpages.debian.org/bullseye/whiptail/whiptail.1.en.html&quot;&gt;&lt;code&gt;whiptail&lt;/code&gt;&lt;/a&gt;.
+Unfortunately Ubuntu doesn&#39;t want you to remove the &#39;whiptail&#39;
+package itself; it&#39;s a dependency of the &#39;ubuntu-minimal&#39; package,
+and I don&#39;t really feel like finding out what effects stripping out
+core looking &#39;ubuntu-&amp;lt;etc&gt;&#39; packages have. Another option is for
+me to configure xterm to set the &#39;&lt;code&gt;$TERM&lt;/code&gt;&#39; environment variable to
+&#39;xterm-mono&#39;, which I expect exists on most Unix systems I&#39;m likely
+to use (or perhaps the older name &#39;xtermm&#39;, which is also on OpenBSD).
+This version of xterm&#39;s &lt;a href=&quot;https://man7.org/linux/man-pages/man5/terminfo.5.html&quot;&gt;terminfo&lt;/a&gt; capabilities
+lacks colour entries entirely, and &lt;a href=&quot;https://manpages.debian.org/bullseye/whiptail/whiptail.1.en.html&quot;&gt;&lt;code&gt;whiptail&lt;/code&gt;&lt;/a&gt; works fine with
+it.&lt;/p&gt;
+
+&lt;p&gt;(I&#39;m not intrinsically opposed to colours, but I am opposed to
+blinding or hard to read colour choices, and a great deal of the
+colours that programs try to use in terminal windows wind up that
+way. The default colour set used by GNU Emacs for code highlighting
+generally comes across to me as fairly nice, for example.)&lt;/p&gt;
+
+&lt;p&gt;PS: One way to see if your current terminal type claims to support
+colours is &#39;&lt;code&gt;tput colors&lt;/code&gt;&#39; (&lt;a href=&quot;https://unix.stackexchange.com/a/10065&quot;&gt;cf&lt;/a&gt;).
+In my regular xterms, this reports &#39;8&#39; (the basic number of ANSI
+colours), while &#39;&lt;code&gt;tput -T xterm-mono colors&lt;/code&gt;&#39; reports &#39;-1&#39;, ie &#39;no&#39;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&gt; (&lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/linux/DebconfWhiptailVsXterm?showcomments#comments&quot;&gt;3 comments&lt;/a&gt;.) &lt;/div&gt;</content>
+    <title type="html">Debconf&#39;s questions, or really whiptail, doesn&#39;t always work in xterms</title>
+    <category term="linux"/>
+    <updated>2023-03-09T04:13:31Z</updated>
+    <published>2023-03-09T04:12:30Z</published>
+  </entry>
+</feed>
