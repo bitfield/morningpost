@@ -1,6 +1,7 @@
 package morningpost
 
 import (
+	"bytes"
 	"context"
 	"embed"
 	"encoding/xml"
@@ -16,11 +17,13 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -30,15 +33,18 @@ var templates embed.FS
 const (
 	DefaultHTTPTimeout = 30 * time.Second
 	DefaultListenPort  = 33000
-	DefaultShowMaxNews = 10
+	DefaultShowMaxNews = 50
+	FeedTypeRSS        = "RSS"
+	FeedTypeAtom       = "Atom"
 )
 
 type News struct {
+	Feed  string
 	Title string
 	URL   string
 }
 
-func NewNews(title, URL string) (News, error) {
+func NewNews(feed, title, URL string) (News, error) {
 	if title == "" || URL == "" {
 		return News{}, errors.New("empty title or url")
 	}
@@ -47,6 +53,7 @@ func NewNews(title, URL string) (News, error) {
 		return News{}, err
 	}
 	return News{
+		Feed:  feed,
 		Title: title,
 		URL:   URL,
 	}, nil
@@ -66,7 +73,7 @@ type MorningPost struct {
 }
 
 func (m *MorningPost) GetNews() error {
-	m.News = []News{}
+	m.EmptyNews()
 	g := new(errgroup.Group)
 	for _, feed := range m.Store.GetAll() {
 		feed := feed
@@ -75,9 +82,7 @@ func (m *MorningPost) GetNews() error {
 			if err != nil {
 				return fmt.Errorf("%q: %w", feed.Endpoint, err)
 			}
-			m.mu.Lock()
-			m.News = append(m.News, news...)
-			m.mu.Unlock()
+			m.AddNews(news)
 			return nil
 		})
 
@@ -86,6 +91,8 @@ func (m *MorningPost) GetNews() error {
 }
 
 func (m *MorningPost) RandomNews() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if len(m.News) < m.ShowMaxNews {
 		return
 	}
@@ -94,6 +101,18 @@ func (m *MorningPost) RandomNews() {
 	for _, idx := range randomIndexes {
 		m.PageNews = append(m.PageNews, m.News[idx])
 	}
+}
+
+func (m *MorningPost) AddNews(news []News) {
+	m.mu.Lock()
+	m.News = append(m.News, news...)
+	m.mu.Unlock()
+}
+
+func (m *MorningPost) EmptyNews() {
+	m.mu.Lock()
+	m.News = []News{}
+	m.mu.Unlock()
 }
 
 func (m *MorningPost) ReadURLFromForm(r *http.Request) (string, error) {
@@ -114,6 +133,41 @@ func (m *MorningPost) ReadFeedIDFromURI(uri string) string {
 	return urlParts[len(urlParts)-1]
 }
 
+func (m *MorningPost) FindFeeds(URL string) ([]Feed, error) {
+	resp, err := http.Get(URL)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected response status code %q", resp.Status)
+	}
+	contentType := parseContentType(resp.Header)
+	switch contentType {
+	case "application/rss+xml", "application/xml", "text/xml":
+		return []Feed{{
+			Endpoint: URL,
+			Type:     FeedTypeRSS,
+		}}, nil
+	case "application/atom+xml":
+		return []Feed{{
+			Endpoint: URL,
+			Type:     FeedTypeAtom,
+		}}, nil
+	case "text/html":
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		feeds, err := ParseLinkTags(body, URL)
+		if err != nil {
+			return nil, err
+		}
+		return feeds, nil
+	default:
+		return nil, fmt.Errorf("unexpected content type: %q", contentType)
+	}
+}
+
 func (m *MorningPost) HandleFeeds(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(m.Stdout, r.Method, r.URL)
 	switch r.Method {
@@ -126,13 +180,15 @@ func (m *MorningPost) HandleFeeds(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		feed, err := NewFeed(URL)
+		feeds, err := m.FindFeeds(URL)
 		if err != nil {
 			fmt.Fprintln(m.Stderr, err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		m.Store.Add(feed)
+		for _, feed := range feeds {
+			m.Store.Add(feed)
+		}
 		err = RenderHTMLTemplate(w, "templates/feeds.gohtml", m.Store.GetAll())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -146,8 +202,13 @@ func (m *MorningPost) HandleFeeds(w http.ResponseWriter, r *http.Request) {
 		}
 	case http.MethodDelete:
 		id := m.ReadFeedIDFromURI(r.URL.Path)
-		m.Store.Delete(id)
-		err := RenderHTMLTemplate(w, "templates/feeds.gohtml", m.Store.GetAll())
+		ui64, err := strconv.ParseUint(id, 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		m.Store.Delete(ui64)
+		err = RenderHTMLTemplate(w, "templates/feeds.gohtml", m.Store.GetAll())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -281,7 +342,8 @@ func Main() int {
 
 type Feed struct {
 	Endpoint string
-	ID       string
+	ID       uint64
+	Type     string
 }
 
 func (f Feed) GetNews() ([]News, error) {
@@ -310,19 +372,63 @@ func (f Feed) GetNews() ([]News, error) {
 	}
 }
 
-func NewFeed(URL string) (Feed, error) {
-	u, err := url.Parse(URL)
-	if err != nil {
-		return Feed{}, err
-	}
-	if u.Scheme == "" {
-		u.Scheme = "https"
-	}
-	return Feed{Endpoint: u.String()}, nil
-}
-
 func parseContentType(headers http.Header) string {
 	return strings.Split(headers.Get("content-type"), ";")[0]
+}
+
+func ParseLinkTags(data []byte, baseURL string) ([]Feed, error) {
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	feeds := []Feed{}
+	doc.Find("link[type='application/rss+xml']").Each(func(i int, s *goquery.Selection) {
+		href, exists := s.Attr("href")
+		if exists {
+			u, err := url.Parse(href)
+			if err != nil {
+				return
+			}
+			feeds = append(feeds, Feed{
+				Endpoint: base.ResolveReference(u).String(),
+				Type:     FeedTypeRSS,
+			})
+		}
+	})
+	doc.Find("link[type='application/atom+xml']").Each(func(i int, s *goquery.Selection) {
+		href, exists := s.Attr("href")
+		if exists {
+			u, err := url.Parse(href)
+			if err != nil {
+				return
+			}
+			feeds = append(feeds, Feed{
+				Endpoint: base.ResolveReference(u).String(),
+				Type:     FeedTypeAtom,
+			})
+		}
+	})
+	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+		title, _ := s.Attr("title")
+		if strings.Contains(strings.ToLower(title), "rss") {
+			href, exists := s.Attr("href")
+			if exists {
+				u, err := url.Parse(href)
+				if err != nil {
+					return
+				}
+				feeds = append(feeds, Feed{
+					Endpoint: base.ResolveReference(u).String(),
+					Type:     FeedTypeRSS,
+				})
+			}
+		}
+	})
+	return feeds, nil
 }
 
 func RenderHTMLTemplate(w io.Writer, templatePath string, data any) error {
@@ -338,6 +444,7 @@ func ParseRSSResponse(input []byte) ([]News, error) {
 	type rss struct {
 		XMLName xml.Name `xml:"rss"`
 		Channel struct {
+			Title string `xml:"title"`
 			Items []struct {
 				Title string `xml:"title"`
 				Link  string `xml:"link"`
@@ -351,7 +458,7 @@ func ParseRSSResponse(input []byte) ([]News, error) {
 	}
 	allNews := make([]News, 0, len(r.Channel.Items))
 	for _, item := range r.Channel.Items {
-		news, err := NewNews(item.Title, item.Link)
+		news, err := NewNews(r.Channel.Title, item.Title, item.Link)
 		if err != nil {
 			continue
 		}
@@ -363,6 +470,7 @@ func ParseRSSResponse(input []byte) ([]News, error) {
 func ParseAtomResponse(input []byte) ([]News, error) {
 	type atom struct {
 		XMLName xml.Name `xml:"feed"`
+		Title   string   `xml:"title"`
 		Entries []struct {
 			Link struct {
 				Href string `xml:"href,attr"`
@@ -379,7 +487,7 @@ func ParseAtomResponse(input []byte) ([]News, error) {
 	}
 	allNews := make([]News, 0, len(a.Entries))
 	for _, item := range a.Entries {
-		news, err := NewNews(item.Title.Text, item.Link.Href)
+		news, err := NewNews(a.Title, item.Title.Text, item.Link.Href)
 		if err != nil {
 			continue
 		}

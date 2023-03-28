@@ -1,7 +1,7 @@
 {{template "main" .}}
 {{define "content"}}
 <div class="container">
-  <nav class="navbar navbar-expand-lg bg-primary" data-bs-theme="dark">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand mb-0 h1">MorningPost</a>
       <button
@@ -40,10 +40,10 @@
         title="URL must contain http or https scheme and a valid domain name"
         type="text"
       />
-      <!-- <div id="URLHelp" class="form-text">
-            If you type only the site URL we'll try to find out the RSS feed URL
-            for you.
-          </div> -->
+      <div id="URLHelp" class="form-text">
+        If you type only the site URL we'll try to find out the RSS feed URL for
+        you.
+      </div>
     </div>
     <button hx-post="/feeds/" hx-target="body" class="btn btn-primary">
       Create

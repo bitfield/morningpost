@@ -1,7 +1,7 @@
 {{template "main" .}}
 {{define "content"}}
 <div class="container">
-  <nav class="navbar navbar-expand-lg bg-primary" data-bs-theme="dark">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand mb-0 h1">MorningPost</a>
       <button
@@ -38,6 +38,7 @@
       <tr>
         <th class="table-light" scope="row">
           <a href="{{ .URL }}">{{ .Title }}</a>
+          <small class="text-muted">{{ .Feed }}</small>
         </th>
       </tr>
       {{- end -}}

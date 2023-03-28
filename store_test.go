@@ -20,11 +20,12 @@ func newFileStoreWithBogusPath(t *testing.T) *morningpost.FileStore {
 	}
 	return fileStore
 }
+
 func TestAdd_PopulatesStoreGivenFeed(t *testing.T) {
-	want := map[string]morningpost.Feed{
-		"776ae47727e1e4a3c3b41761e514b146a508f487908574ceb577aa1c2ac12dad": {
+	want := map[uint64]morningpost.Feed{
+		11467468815701994079: {
 			Endpoint: "fake.url",
-			ID:       "776ae47727e1e4a3c3b41761e514b146a508f487908574ceb577aa1c2ac12dad",
+			ID:       11467468815701994079,
 		},
 	}
 	fileStore := newFileStoreWithBogusPath(t)
@@ -48,11 +49,11 @@ func TestGetAll_ReturnsProperItemsGivenPrePoluatedStore(t *testing.T) {
 		},
 	}
 	fileStore := newFileStoreWithBogusPath(t)
-	fileStore.Data = map[string]morningpost.Feed{
-		"http://fake-http.url": {
+	fileStore.Data = map[uint64]morningpost.Feed{
+		0: {
 			Endpoint: "http://fake-http.url",
 		},
-		"https://fake-https.url": {
+		1: {
 			Endpoint: "https://fake-https.url",
 		},
 	}
@@ -64,7 +65,7 @@ func TestGetAll_ReturnsProperItemsGivenPrePoluatedStore(t *testing.T) {
 
 func TestLoad_ReturnsExpectedDataGivenEmptyFileStore(t *testing.T) {
 	t.Parallel()
-	want := map[string]morningpost.Feed{}
+	want := map[uint64]morningpost.Feed{}
 	fileStore := newFileStoreWithBogusPath(t)
 	err := fileStore.Load()
 	if err != nil {
@@ -78,11 +79,11 @@ func TestLoad_ReturnsExpectedDataGivenEmptyFileStore(t *testing.T) {
 
 func TestSave_PersistsDataToStore(t *testing.T) {
 	t.Parallel()
-	want := map[string]morningpost.Feed{
-		"http://fake-http.url": {
+	want := map[uint64]morningpost.Feed{
+		0: {
 			Endpoint: "http://fake-http.url",
 		},
-		"https://fake-https.url": {
+		1: {
 			Endpoint: "https://fake-https.url",
 		},
 	}
@@ -93,11 +94,11 @@ func TestSave_PersistsDataToStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fileStore.Data = map[string]morningpost.Feed{
-		"http://fake-http.url": {
+	fileStore.Data = map[uint64]morningpost.Feed{
+		0: {
 			Endpoint: "http://fake-http.url",
 		},
-		"https://fake-https.url": {
+		1: {
 			Endpoint: "https://fake-https.url",
 		},
 	}
@@ -119,21 +120,21 @@ func TestSave_PersistsDataToStore(t *testing.T) {
 
 func TestDelete_RemovesFeedFromStore(t *testing.T) {
 	t.Parallel()
-	want := map[string]morningpost.Feed{
-		"https://fake-https.url": {
+	want := map[uint64]morningpost.Feed{
+		1: {
 			Endpoint: "https://fake-https.url",
 		},
 	}
 	fileStore := newFileStoreWithBogusPath(t)
-	fileStore.Data = map[string]morningpost.Feed{
-		"http://fake-http.url": {
+	fileStore.Data = map[uint64]morningpost.Feed{
+		0: {
 			Endpoint: "http://fake-http.url",
 		},
-		"https://fake-https.url": {
+		1: {
 			Endpoint: "https://fake-https.url",
 		},
 	}
-	fileStore.Delete("http://fake-http.url")
+	fileStore.Delete(0)
 	got := fileStore.Data
 	if !cmp.Equal(want, got) {
 		t.Fatal(cmp.Diff(want, got))
@@ -159,11 +160,11 @@ func TestNewFileStore_SetsDefaultPath(t *testing.T) {
 
 func TestNewFileStore_LoadsDataGivenPopulatedStore(t *testing.T) {
 	t.Parallel()
-	want := map[string]morningpost.Feed{
-		"http://fake-http.url": {
+	want := map[uint64]morningpost.Feed{
+		0: {
 			Endpoint: "http://fake-http.url",
 		},
-		"https://fake-https.url": {
+		1: {
 			Endpoint: "https://fake-https.url",
 		},
 	}

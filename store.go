@@ -1,10 +1,9 @@
 package morningpost
 
 import (
-	"crypto/sha256"
 	"encoding/gob"
 	"errors"
-	"fmt"
+	"hash/fnv"
 	"os"
 	"path"
 
@@ -12,14 +11,15 @@ import (
 )
 
 type FileStore struct {
-	Data map[string]Feed
+	Data map[uint64]Feed
 	Path string
 }
 
 func (f *FileStore) Add(feed Feed) {
-	id := fmt.Sprintf("%x", sha256.Sum256([]byte(feed.Endpoint)))
-	feed.ID = id
-	f.Data[id] = feed
+	h := fnv.New64a()
+	h.Write([]byte(feed.Endpoint))
+	feed.ID = h.Sum64()
+	f.Data[h.Sum64()] = feed
 }
 
 func (f *FileStore) GetAll() []Feed {
@@ -47,13 +47,13 @@ func (f *FileStore) Save() error {
 	return enc.Encode(f.Data)
 }
 
-func (f *FileStore) Delete(endpoint string) {
-	delete(f.Data, endpoint)
+func (f *FileStore) Delete(id uint64) {
+	delete(f.Data, id)
 }
 
 func NewFileStore(opts ...FileStoreOption) (*FileStore, error) {
 	fileStore := &FileStore{
-		Data: map[string]Feed{},
+		Data: map[uint64]Feed{},
 		Path: userStateDir() + "/MorningPost/morningpost.db",
 	}
 	for _, o := range opts {

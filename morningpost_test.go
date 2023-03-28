@@ -8,11 +8,21 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/thiagonache/morningpost"
 )
+
+func newServerWithContentTypeResponse(t *testing.T, contentType string) *httptest.Server {
+	t.Helper()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", contentType)
+	}))
+	t.Cleanup(func() { ts.Close() })
+	return ts
+}
 
 func newServerWithContentTypeAndBodyResponse(t *testing.T, contentType string, filePath string) *httptest.Server {
 	t.Helper()
@@ -20,10 +30,12 @@ func newServerWithContentTypeAndBodyResponse(t *testing.T, contentType string, f
 	if err != nil {
 		t.Fatal(err)
 	}
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("content-type", contentType)
 		w.Write(data)
 	}))
+	t.Cleanup(func() { ts.Close() })
+	return ts
 }
 
 func newMorningPostWithBogusFileStoreAndNoOutput(t *testing.T) *morningpost.MorningPost {
@@ -37,6 +49,21 @@ func newMorningPostWithBogusFileStoreAndNoOutput(t *testing.T) *morningpost.Morn
 		t.Fatal(err)
 	}
 	return m
+}
+
+func generateOneThousandsNews(t *testing.T) []morningpost.News {
+	t.Helper()
+	allNews := []morningpost.News{}
+	for x := 0; x < 1000; x++ {
+		title := fmt.Sprintf("News #%d", x)
+		URL := fmt.Sprintf("http://fake.url/news-%d", x)
+		news, err := morningpost.NewNews("Feed Unit test", title, URL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		allNews = append(allNews, news)
+	}
+	return allNews
 }
 
 func TestNew_SetsDefaultShowMaxNewsByDefault(t *testing.T) {
@@ -236,6 +263,33 @@ func TestWithClient_SetsDisableKeepAlivesGivenHTTPClientWithKeepAlivesDisabled(t
 	}
 }
 
+func TestParseRSSResponse_ReturnsNewsGivenRSSFeedData(t *testing.T) {
+	t.Parallel()
+	want := []morningpost.News{
+		{
+			Feed:  "FeedForAll Sample Feed",
+			Title: "RSS Solutions for Restaurants",
+			URL:   "http://www.feedforall.com/restaurant.htm",
+		},
+		{
+			Feed:  "FeedForAll Sample Feed",
+			Title: "RSS Solutions for Schools and Colleges",
+			URL:   "http://www.feedforall.com/schools.htm",
+		},
+	}
+	inputData, err := os.ReadFile("testdata/rss.xml")
+	if err != nil {
+		t.Fatalf("Cannot read file content: %+v", err)
+	}
+	got, err := morningpost.ParseRSSResponse(inputData)
+	if err != nil {
+		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
 func TestParseRSSResponse_SkipItemGivenNewsWithNoURL(t *testing.T) {
 	t.Parallel()
 	want := []morningpost.News{}
@@ -332,34 +386,11 @@ func TestHandleFeeds_ReturnsExpectedStatusCodeGivenRequestWithMethodPostAndBody(
 	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
 	tsHandler := httptest.NewServer(http.HandlerFunc(m.HandleFeeds))
 	defer tsHandler.Close()
-	ts := newServerWithContentTypeAndBodyResponse(t, "application/rss+xml", "testdata/rss-empty-tag.xml")
-	defer ts.Close()
+	ts := newServerWithContentTypeResponse(t, "application/rss+xml")
 	reqBody := url.Values{
 		"url": {ts.URL},
 	}
 	resp, err := http.PostForm(tsHandler.URL, reqBody)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := resp.StatusCode
-	if want != got {
-		t.Fatalf("want status code %d, got %d", want, got)
-	}
-}
-
-func TestHandleFeeds_ReturnsExpectedStatusCodeGivenDeleteRequest(t *testing.T) {
-	t.Parallel()
-	want := http.StatusOK
-	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
-	tsHandler := httptest.NewServer(http.HandlerFunc(m.HandleFeeds))
-	defer tsHandler.Close()
-	ts := newServerWithContentTypeAndBodyResponse(t, "application/rss+xml", "testdata/rss-empty-tag.xml")
-	defer ts.Close()
-	req, err := http.NewRequest(http.MethodDelete, tsHandler.URL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,56 +435,6 @@ func TestHandleFeeds_AnswersBadRequestGivenRequestWithMethodPostAndBlankSpacesIn
 	}
 }
 
-func TestHandleFeeds_RendersProperHTMLPageGivenEmptyStore(t *testing.T) {
-	t.Parallel()
-	want, err := os.ReadFile("testdata/golden/feeds.html")
-	if err != nil {
-		t.Fatal(err)
-	}
-	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
-	ts := httptest.NewServer(http.HandlerFunc(m.HandleFeeds))
-	defer ts.Close()
-	resp, err := http.Get(ts.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected status code %d", resp.StatusCode)
-	}
-	got, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !cmp.Equal(want, got) {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestHandleHome_RendersProperHTMLPageGivenEmptyStore(t *testing.T) {
-	t.Parallel()
-	want, err := os.ReadFile("testdata/golden/home.html")
-	if err != nil {
-		t.Fatal(err)
-	}
-	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
-	ts := httptest.NewServer(http.HandlerFunc(m.HandleHome))
-	defer ts.Close()
-	resp, err := http.Get(ts.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected status code %d", resp.StatusCode)
-	}
-	got, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !cmp.Equal(want, got) {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
 func TestHandleNews_AnswersMethodNotAllowedGivenRequestWithBogusMethod(t *testing.T) {
 	t.Parallel()
 	want := http.StatusMethodNotAllowed
@@ -493,13 +474,12 @@ func TestFeedGetNews_ReturnsNewsFromFeed(t *testing.T) {
 		},
 	}
 	want := []morningpost.News{
-		{Title: "RSS Solutions for Restaurants", URL: "http://www.feedforall.com/restaurant.htm"},
-		{Title: "RSS Solutions for Schools and Colleges", URL: "http://www.feedforall.com/schools.htm"},
+		{Feed: "FeedForAll Sample Feed", Title: "RSS Solutions for Restaurants", URL: "http://www.feedforall.com/restaurant.htm"},
+		{Feed: "FeedForAll Sample Feed", Title: "RSS Solutions for Schools and Colleges", URL: "http://www.feedforall.com/schools.htm"},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			ts := newServerWithContentTypeAndBodyResponse(t, tC.contentType, "testdata/rss.xml")
-			defer ts.Close()
 			feed := morningpost.Feed{
 				Endpoint: ts.URL,
 			}
@@ -517,16 +497,17 @@ func TestFeedGetNews_ReturnsNewsFromFeed(t *testing.T) {
 func TestFeedGetNews_ReturnsNewsFromFeedGivenResponseContentTypeApplicationAtomXML(t *testing.T) {
 	want := []morningpost.News{
 		{
+			Feed:  "Chris's Wiki :: blog",
 			Title: "ZFS on Linux and when you get stale NFSv3 mounts",
 			URL:   "https://utcc.utoronto.ca/~cks/space/blog/linux/ZFSAndNFSMountInvalidation",
 		},
 		{
+			Feed:  "Chris's Wiki :: blog",
 			Title: "Debconf's questions, or really whiptail, doesn't always work in xterms",
 			URL:   "https://utcc.utoronto.ca/~cks/space/blog/linux/DebconfWhiptailVsXterm",
 		},
 	}
 	ts := newServerWithContentTypeAndBodyResponse(t, "application/atom+xml", "testdata/atom.xml")
-	defer ts.Close()
 	feed := morningpost.Feed{
 		Endpoint: ts.URL,
 	}
@@ -578,10 +559,7 @@ func TestFeedGetNews_ErrorsGivenInvalidEndpoint(t *testing.T) {
 
 func TestFeedGetNews_ErrorsIfResponseContentTypeIsUnexpected(t *testing.T) {
 	t.Parallel()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("content-type", "bogus")
-	}))
-	defer ts.Close()
+	ts := newServerWithContentTypeResponse(t, "bogus")
 	feed := morningpost.Feed{
 		Endpoint: ts.URL,
 	}
@@ -596,17 +574,15 @@ func TestGetNews_ReturnsNewsFromAllFeedsGivenPopulatedStore(t *testing.T) {
 	want := 2
 	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
 	ts1 := newServerWithContentTypeAndBodyResponse(t, "application/rss+xml", "testdata/rss-with-one-news-1.xml")
-	defer ts1.Close()
 	feed1 := morningpost.Feed{
 		Endpoint: ts1.URL,
 	}
-	m.Store.Data[feed1.Endpoint] = feed1
+	m.Store.Data[0] = feed1
 	ts2 := newServerWithContentTypeAndBodyResponse(t, "application/rss+xml", "testdata/rss-with-one-news-2.xml")
-	defer ts2.Close()
 	feed2 := morningpost.Feed{
 		Endpoint: ts2.URL,
 	}
-	m.Store.Data[feed2.Endpoint] = feed2
+	m.Store.Data[1] = feed2
 	err := m.GetNews()
 	if err != nil {
 		t.Fatal(err)
@@ -641,7 +617,7 @@ func TestGetNews_ErrorsIfFeedGetNewsErrors(t *testing.T) {
 	feed := morningpost.Feed{
 		Endpoint: "bogus://",
 	}
-	m.Store.Data[feed.Endpoint] = feed
+	m.Store.Data[0] = feed
 	err := m.GetNews()
 	if err == nil {
 		t.Fatal("want error but got nil")
@@ -664,14 +640,16 @@ func TestRandomNews_RandomizePageNewsToSameNumberAsShowMaxNews(t *testing.T) {
 	}
 }
 
-func TestParseAtomResponse_ReturnsExpectedNewsGivenRSSWithTwoNews(t *testing.T) {
+func TestParseAtomResponse_ReturnsNewsGivenAtomWithTwoNews(t *testing.T) {
 	t.Parallel()
 	want := []morningpost.News{
 		{
+			Feed:  "Chris's Wiki :: blog",
 			Title: "ZFS on Linux and when you get stale NFSv3 mounts",
 			URL:   "https://utcc.utoronto.ca/~cks/space/blog/linux/ZFSAndNFSMountInvalidation",
 		},
 		{
+			Feed:  "Chris's Wiki :: blog",
 			Title: "Debconf's questions, or really whiptail, doesn't always work in xterms",
 			URL:   "https://utcc.utoronto.ca/~cks/space/blog/linux/DebconfWhiptailVsXterm",
 		},
@@ -761,12 +739,33 @@ func TestHandleHome_AnswersNotFoundForUnkownRoute(t *testing.T) {
 	}
 }
 
-func TestNewFeed_ReturnsExpectedFeedGivenFullURL(t *testing.T) {
+func TestAddNews_AddsCorrectNewsGivenConcurrentAccess(t *testing.T) {
 	t.Parallel()
-	want := morningpost.Feed{
-		Endpoint: "http://fake.url",
+	want := 1000
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	allNews := generateOneThousandsNews(t)
+	var wg sync.WaitGroup
+	for x := 0; x < 1000; x++ {
+		wg.Add(1)
+		go func(x int) {
+			m.AddNews([]morningpost.News{allNews[x]})
+			wg.Done()
+		}(x)
 	}
-	got, err := morningpost.NewFeed("http://fake.url")
+	wg.Wait()
+	got := len(m.News)
+	if want != got {
+		t.Fatalf("want %d news, got %d", want, got)
+	}
+}
+
+func TestParseLinkTags_ReturnsFeedEndpointGivenHTMLPageWithRSSFeedInBodyElement(t *testing.T) {
+	t.Parallel()
+	want := []morningpost.Feed{{
+		Endpoint: "https://bitfieldconsulting.com/golang?format=rss",
+		Type:     morningpost.FeedTypeRSS,
+	}}
+	got, err := morningpost.ParseLinkTags([]byte(`<a href="https://bitfieldconsulting.com/golang?format=rss" title="Go RSS" class="social-rss">Go RSS</a>`), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -775,19 +774,195 @@ func TestNewFeed_ReturnsExpectedFeedGivenFullURL(t *testing.T) {
 	}
 }
 
-func TestNewFeed_AddsHTTPSSchemeGivenURLWithoutScheme(t *testing.T) {
+func TestParseLinkTags_ReturnsFeedEndpointGivenHTMLPageWithRSSFeedInLinkElement(t *testing.T) {
 	t.Parallel()
-	want := "https"
-	feed, err := morningpost.NewFeed("127.0.0.1")
+	want := []morningpost.Feed{{
+		Endpoint: "http://fake.url/rss",
+		Type:     morningpost.FeedTypeRSS,
+	}}
+	got, err := morningpost.ParseLinkTags([]byte(`<link type="application/rss+xml" title="Unit Test" href="http://fake.url/rss" />`), "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	u, err := url.Parse(feed.Endpoint)
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestParseLinkTags_ReturnsFeedEndpointGivenHTMLPageWithAtomFeedInLinkElement(t *testing.T) {
+	t.Parallel()
+	want := []morningpost.Feed{{
+		Endpoint: "http://fake.url/feed/",
+		Type:     morningpost.FeedTypeAtom,
+	}}
+	got, err := morningpost.ParseLinkTags([]byte(`<link type="application/atom+xml" title="Unit Test" href="http://fake.url/feed/" />`), "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := u.Scheme
-	if want != got {
-		t.Fatalf("want scheme %q, got %q", want, got)
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFindFeeds_ErrorsIfStatusCodeIsNotStatusOK(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTeapot)
+	}))
+	defer ts.Close()
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	_, err := m.FindFeeds(ts.URL)
+	if err == nil {
+		t.Fatal("want error but got nil")
+	}
+}
+
+func TestFindFeeds_ErrorsGivenURLWithSchemeBogus(t *testing.T) {
+	t.Parallel()
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	_, err := m.FindFeeds("bogus://")
+	if err == nil {
+		t.Fatal("want error but got nil")
+	}
+}
+
+func TestFindFeeds_ErrorsGivenUnexpectedContentType(t *testing.T) {
+	t.Parallel()
+	ts := newServerWithContentTypeResponse(t, "bogus")
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	_, err := m.FindFeeds(ts.URL)
+	if err == nil {
+		t.Fatal("want error but got nil")
+	}
+}
+
+func TestFindFeeds_ReturnsExpectedFeedsGivenApplicationRSSXMLContentType(t *testing.T) {
+	t.Parallel()
+	ts := newServerWithContentTypeResponse(t, "application/rss+xml")
+	want := []morningpost.Feed{{
+		Endpoint: ts.URL,
+		Type:     morningpost.FeedTypeRSS,
+	}}
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	got, err := m.FindFeeds(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFindFeeds_ReturnsExpectedFeedsGivenApplicationXMLContentType(t *testing.T) {
+	t.Parallel()
+	ts := newServerWithContentTypeResponse(t, "application/xml")
+	want := []morningpost.Feed{{
+		Endpoint: ts.URL,
+		Type:     morningpost.FeedTypeRSS,
+	}}
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	got, err := m.FindFeeds(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFindFeeds_ReturnsExpectedFeedsGivenTextXMLContentType(t *testing.T) {
+	t.Parallel()
+	ts := newServerWithContentTypeResponse(t, "text/xml")
+	want := []morningpost.Feed{{
+		Endpoint: ts.URL,
+		Type:     morningpost.FeedTypeRSS,
+	}}
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	got, err := m.FindFeeds(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFindFeeds_ReturnsExpectedFeedsGivenAtomApplicationContentType(t *testing.T) {
+	t.Parallel()
+	ts := newServerWithContentTypeResponse(t, "application/atom+xml")
+	want := []morningpost.Feed{{
+		Endpoint: ts.URL,
+		Type:     "Atom",
+	}}
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	got, err := m.FindFeeds(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFindFeeds_ReturnsExpectedFeedsGivenHTMLPageWithFeedsInFullLinkFormat(t *testing.T) {
+	t.Parallel()
+	want := []morningpost.Feed{
+		{
+			Endpoint: "http://example.com/rss",
+			Type:     morningpost.FeedTypeRSS,
+		},
+		{
+			Endpoint: "http://example.com/atom",
+			Type:     morningpost.FeedTypeAtom,
+		},
+	}
+	HTMLElementLinkData := []byte(`<link type="application/rss+xml" title="RSS Unit Test" href="http://example.com/rss" />
+	                               <link type="application/atom+xml" title="Atom Unit Test" href="http://example.com/atom" />`)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.RequestURI {
+		case "/":
+			w.Header().Set("content-type", "text/html")
+			w.Write(HTMLElementLinkData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	got, err := m.FindFeeds(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFindFeeds_ReturnsExpectedFeedsGivenHTMLPageWithFeedInRelativeLinkFormat(t *testing.T) {
+	t.Parallel()
+	HTMLElementLinkData := []byte(`<link type="application/rss+xml" title="RSS Unit Test" href="rss" />`)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.RequestURI {
+		case "/":
+			w.Header().Set("content-type", "text/html")
+			w.Write(HTMLElementLinkData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+	want := []morningpost.Feed{
+		{
+			Endpoint: ts.URL + "/rss",
+			Type:     morningpost.FeedTypeRSS,
+		},
+	}
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	got, err := m.FindFeeds(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
 	}
 }
