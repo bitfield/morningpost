@@ -474,8 +474,16 @@ func TestFeedGetNews_ReturnsNewsFromFeed(t *testing.T) {
 		},
 	}
 	want := []morningpost.News{
-		{Feed: "FeedForAll Sample Feed", Title: "RSS Solutions for Restaurants", URL: "http://www.feedforall.com/restaurant.htm"},
-		{Feed: "FeedForAll Sample Feed", Title: "RSS Solutions for Schools and Colleges", URL: "http://www.feedforall.com/schools.htm"},
+		{
+			Feed:  "FeedForAll Sample Feed",
+			Title: "RSS Solutions for Restaurants",
+			URL:   "http://www.feedforall.com/restaurant.htm",
+		},
+		{
+			Feed:  "FeedForAll Sample Feed",
+			Title: "RSS Solutions for Schools and Colleges",
+			URL:   "http://www.feedforall.com/schools.htm",
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
@@ -916,13 +924,12 @@ func TestFindFeeds_ReturnsExpectedFeedsGivenHTMLPageWithFeedsInFullLinkFormat(t 
 			Type:     morningpost.FeedTypeAtom,
 		},
 	}
-	HTMLElementLinkData := []byte(`<link type="application/rss+xml" title="RSS Unit Test" href="http://example.com/rss" />
-	                               <link type="application/atom+xml" title="Atom Unit Test" href="http://example.com/atom" />`)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.RequestURI {
 		case "/":
 			w.Header().Set("content-type", "text/html")
-			w.Write(HTMLElementLinkData)
+			w.Write([]byte(`<link type="application/rss+xml" title="RSS Unit Test" href="http://example.com/rss" />
+	                        <link type="application/atom+xml" title="Atom Unit Test" href="http://example.com/atom" />`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -940,12 +947,11 @@ func TestFindFeeds_ReturnsExpectedFeedsGivenHTMLPageWithFeedsInFullLinkFormat(t 
 
 func TestFindFeeds_ReturnsExpectedFeedsGivenHTMLPageWithFeedInRelativeLinkFormat(t *testing.T) {
 	t.Parallel()
-	HTMLElementLinkData := []byte(`<link type="application/rss+xml" title="RSS Unit Test" href="rss" />`)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.RequestURI {
 		case "/":
 			w.Header().Set("content-type", "text/html")
-			w.Write(HTMLElementLinkData)
+			w.Write([]byte(`<link type="application/rss+xml" title="RSS Unit Test" href="rss" />`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -964,5 +970,29 @@ func TestFindFeeds_ReturnsExpectedFeedsGivenHTMLPageWithFeedInRelativeLinkFormat
 	}
 	if !cmp.Equal(want, got) {
 		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFeedFinds_SetsHeadersOnHTTPRequest(t *testing.T) {
+	t.Parallel()
+	wantHeaders := map[string]string{
+		"user-agent": "MorningPost/0.1",
+		"accept":     "*/*",
+	}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for header, want := range wantHeaders {
+			got := r.Header.Get(header)
+			if want != got {
+				t.Errorf("want value %q, got %q for header %q", want, got, header)
+			}
+		}
+		w.Header().Set("content-type", "application/rss+xml")
+		w.Write([]byte(`<rss></rss>`))
+	}))
+	defer ts.Close()
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	_, err := m.FindFeeds(ts.URL)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

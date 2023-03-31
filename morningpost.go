@@ -134,7 +134,13 @@ func (m *MorningPost) ReadFeedIDFromURI(uri string) string {
 }
 
 func (m *MorningPost) FindFeeds(URL string) ([]Feed, error) {
-	resp, err := http.Get(URL)
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("user-agent", "MorningPost/0.1")
+	req.Header.Set("accept", "*/*")
+	resp, err := m.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
