@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="html">Chris&#39;s Wiki :: blog</title>
+  <link rel="alternate" type="text/html" href="https://utcc.utoronto.ca/~cks/space/blog/" />
+  <id>https://utcc.utoronto.ca/~cks/space/blog/?atom</id>
+  <link rel="self" type="application/atom+xml" href="https://utcc.utoronto.ca/~cks/space/blog/?atom" />
+  <generator>DWiki</generator>
+  <updated>2023-03-10T03:39:52Z</updated>
+  <subtitle type="html">Recently changed pages in Chris&#39;s Wiki :: blog.</subtitle>
+  <entry>
+    <id>tag:cspace@cks.mef.org,2009-03-24:/blog/linux/ZFSAndNFSMountInvalidation</id>
+    <link rel="alternate" type="text/html" href="https://utcc.utoronto.ca/~cks/space/blog/linux/ZFSAndNFSMountInvalidation" />
+    <author>
+      <name>cks</name>
+    </author>
+    <content type="html">&lt;div class=&quot;wikitext&quot;&gt;&lt;p&gt;Suppose that you have &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/linux/ZFSFileserverSetupIII&quot;&gt;ZFS based NFS servers&lt;/a&gt;
+that you&#39;re changing from Ubuntu 18.04 to 22.04. These servers have
+a lot of NFS exported filesystems that are mounted and used by a
+lot of clients, so it would be very convenient if you could upgrade
+the ZFS fileservers without having to unmount and remount the
+filesystems on all of your clients. Conversely, if a particular way
+of moving from 18.04 to 22.04 is going to require you to unmount
+all of its filesystems, you&#39;d like to know that in advance so you
+can prepare for it, rather than find out after the fact when clients
+start getting &#39;stale NFS handle&#39; errors. Since we&#39;ve just been
+through some experiences with this, I&#39;m going to write down what
+we&#39;ve observed.&lt;/p&gt;
+
+&lt;p&gt;There are at least three ways to move a ZFS fileserver from Ubuntu
+18.04 to Ubuntu 22.04. I&#39;ll skip upgrading it in place because we
+don&#39;t have any experience with that; &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/linux/WhyNotInplaceOSUpgrades&quot;&gt;we upgrade machines by
+reinstalling them from scratch&lt;/a&gt;. That
+leaves two approaches for a ZFS server, which I will call a &lt;em&gt;forklift
+upgrade&lt;/em&gt; and a &lt;em&gt;migration&lt;/em&gt;. In a forklift upgrade, you build new
+system disks, then swap them in by exporting the ZFS pools, changing
+system disks, booting your new 22.04 system, and importing the pools
+back.&lt;/p&gt;
+
+&lt;p&gt;(As a version of the forklift upgrade you can reuse your current
+system disks, although this means you can&#39;t readily revert.)&lt;/p&gt;
+
+&lt;p&gt;Our experience with these in place &#39;export pools, swap system disks,
+import pools&#39; forklift upgrades is that client NFSv3 mounts survive
+over them. Your NFS clients will stall while your ZFS NFS server
+goes away for a while, but once it&#39;s back (under the right host
+name and IP address), they resume their activities and things pick
+right back up where they were. We&#39;ve also had no problems with ZFS
+pools when we reboot our servers with changed hostnames; changing
+the server&#39;s hostname doesn&#39;t cause ZFS on Linux to not bring the
+pools up on boot.&lt;/p&gt;
+
+&lt;p&gt;However, forklift upgrades can only be done on ZFS fileservers where
+you have separate system disks and ZFS pool disks. &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/sysadmin/LocalVarMailImprovement&quot;&gt;We have one
+fileserver where this isn&#39;t possible&lt;/a&gt;;
+it has only four disks and shares all of them between system
+filesystems and its ZFS pool. For this machine we did a &lt;em&gt;migration&lt;/em&gt;,
+where we built a new version of the system using new disks on new
+hardware, then moved the ZFS data over with ZFS snapshots (&lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/sysadmin/UpgradingMachinesWithState&quot;&gt;as I
+thought we might have to&lt;/a&gt;).
+Once the data was migrated, we shut down the old server and made
+the new hardware take over the name, IP address, and so on.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately for us, when we did this migration, NFS clients got
+stale NFS mounts. The new version of this fileserver had the same
+filesystem with the exact same contents (ZFS snapshots and snapshot
+replication insures that), the same exports, and so on, but &lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/unix/NFSFilehandleInternals&quot;&gt;the
+NFS filehandles&lt;/a&gt; came out different.
+It&#39;s possible that we could have worked around this if we had set
+an explicit &#39;&lt;code&gt;fsid=&lt;/code&gt;&#39; value in our NFS export for the filesystem
+(as per &lt;a href=&quot;https://man7.org/linux/man-pages/man5/exports.5.html&quot;&gt;&lt;code&gt;exports(5)&lt;/code&gt;&lt;/a&gt;), but it&#39;s
+also possible that there were other differences in the NFS filehandle.&lt;/p&gt;
+
+&lt;p&gt;(ZFS has a notion of a &#39;fsid&#39; and a &#39;guid&#39; for ZFS filesystems
+(okay, datasets), and zdb can in theory dump this information, but
+right now I can&#39;t work out how to go from a filesystem name in a
+pool to reading out its ZFS fsid, so I can&#39;t see if it&#39;s preserved
+over ZFS snapshot replication or if the receiver generates a new
+one.)&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&gt; (&lt;a href=&quot;https://utcc.utoronto.ca/~cks/space/blog/linux/ZFSAndNFSMountInvalidation?showcomments#comments&quot;&gt;One comment&lt;/a&gt;.) &lt;/div&gt;</content>
+    <title type="html"></title>
+    <category term="linux"/>
+    <updated>2023-03-10T03:39:52Z</updated>
+    <published>2023-03-10T03:38:51Z</published>
+  </entry>
+</feed>
