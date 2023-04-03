@@ -1,7 +1,6 @@
 package morningpost
 
 import (
-	"bytes"
 	"context"
 	"embed"
 	"encoding/xml"
@@ -47,12 +46,8 @@ type News struct {
 }
 
 func NewNews(feed, title, URL string) (News, error) {
-	if title == "" || URL == "" {
-		return News{}, errors.New("empty title or url")
-	}
-	_, err := url.Parse(URL)
-	if err != nil {
-		return News{}, err
+	if feed == "" || title == "" || URL == "" {
+		return News{}, errors.New("empty feed, title or url")
 	}
 	return News{
 		Feed:  feed,
@@ -361,17 +356,13 @@ func (f Feed) GetNews() ([]News, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
 	switch f.Type {
 	case FeedTypeRSS:
-		return ParseRSSResponse(body)
+		return ParseRSSResponse(resp.Body)
 	case FeedTypeRDF:
-		return ParseRDFResponse(bytes.NewReader(body))
+		return ParseRDFResponse(resp.Body)
 	case FeedTypeAtom:
-		return ParseAtomResponse(body)
+		return ParseAtomResponse(resp.Body)
 	default:
 		return nil, fmt.Errorf("unkown feed type %q", f.Type)
 	}
@@ -445,7 +436,7 @@ func RenderHTMLTemplate(w io.Writer, templatePath string, data any) error {
 	return nil
 }
 
-func ParseRSSResponse(input []byte) ([]News, error) {
+func ParseRSSResponse(r io.Reader) ([]News, error) {
 	type rss struct {
 		XMLName xml.Name `xml:"rss"`
 		Channel struct {
@@ -456,14 +447,16 @@ func ParseRSSResponse(input []byte) ([]News, error) {
 			} `xml:"item"`
 		} `xml:"channel"`
 	}
-	r := rss{}
-	err := xml.Unmarshal(input, &r)
+	rssData := rss{}
+	decoder := xml.NewDecoder(r)
+	decoder.CharsetReader = charset.NewReaderLabel
+	err := decoder.Decode(&rssData)
 	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal data %q: %w", input, err)
+		return nil, fmt.Errorf("cannot decode data: %w", err)
 	}
-	allNews := make([]News, 0, len(r.Channel.Items))
-	for _, item := range r.Channel.Items {
-		news, err := NewNews(r.Channel.Title, item.Title, item.Link)
+	allNews := make([]News, 0, len(rssData.Channel.Items))
+	for _, item := range rssData.Channel.Items {
+		news, err := NewNews(rssData.Channel.Title, item.Title, item.Link)
 		if err != nil {
 			continue
 		}
@@ -501,7 +494,7 @@ func ParseRDFResponse(r io.Reader) ([]News, error) {
 	return allNews, nil
 }
 
-func ParseAtomResponse(input []byte) ([]News, error) {
+func ParseAtomResponse(r io.Reader) ([]News, error) {
 	type atom struct {
 		XMLName xml.Name `xml:"feed"`
 		Title   string   `xml:"title"`
@@ -514,14 +507,16 @@ func ParseAtomResponse(input []byte) ([]News, error) {
 			} `xml:"title"`
 		} `xml:"entry"`
 	}
-	a := atom{}
-	err := xml.Unmarshal(input, &a)
+	atomData := atom{}
+	decoder := xml.NewDecoder(r)
+	decoder.CharsetReader = charset.NewReaderLabel
+	err := decoder.Decode(&atomData)
 	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal data %q: %w", input, err)
+		return nil, fmt.Errorf("cannot decode data: %w", err)
 	}
-	allNews := make([]News, 0, len(a.Entries))
-	for _, item := range a.Entries {
-		news, err := NewNews(a.Title, item.Title.Text, item.Link.Href)
+	allNews := make([]News, 0, len(atomData.Entries))
+	for _, item := range atomData.Entries {
+		news, err := NewNews(atomData.Title, item.Title.Text, item.Link.Href)
 		if err != nil {
 			continue
 		}

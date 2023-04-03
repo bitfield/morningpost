@@ -278,61 +278,13 @@ func TestParseRSSResponse_ReturnsNewsGivenRSSFeedData(t *testing.T) {
 			URL:   "http://www.feedforall.com/schools.htm",
 		},
 	}
-	inputData, err := os.ReadFile("testdata/rss.xml")
+	file, err := os.Open("testdata/rss.xml")
 	if err != nil {
-		t.Fatalf("Cannot read file content: %+v", err)
+		t.Fatalf("Cannot open file testdata/rss.xml: %+v", err)
 	}
-	got, err := morningpost.ParseRSSResponse(inputData)
+	got, err := morningpost.ParseRSSResponse(file)
 	if err != nil {
-		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
-	}
-	if !cmp.Equal(want, got) {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestParseRSSResponse_SkipItemGivenNewsWithNoURL(t *testing.T) {
-	t.Parallel()
-	want := []morningpost.News{}
-	inputData, err := os.ReadFile("testdata/no-url-item-rss.xml")
-	if err != nil {
-		t.Fatalf("Cannot read file content: %+v", err)
-	}
-	got, err := morningpost.ParseRSSResponse(inputData)
-	if err != nil {
-		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
-	}
-	if !cmp.Equal(want, got) {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestParseRSSResponse_SkipItemGivenInvalidURL(t *testing.T) {
-	t.Parallel()
-	want := []morningpost.News{}
-	inputData, err := os.ReadFile("testdata/invalid-url-item-rss.xml")
-	if err != nil {
-		t.Fatalf("Cannot read file content: %+v", err)
-	}
-	got, err := morningpost.ParseRSSResponse(inputData)
-	if err != nil {
-		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
-	}
-	if !cmp.Equal(want, got) {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestParseRSSResponse_SkipItemGivenNoTitle(t *testing.T) {
-	t.Parallel()
-	want := []morningpost.News{}
-	inputData, err := os.ReadFile("testdata/no-title-item-rss.xml")
-	if err != nil {
-		t.Fatalf("Cannot read file content: %+v", err)
-	}
-	got, err := morningpost.ParseRSSResponse(inputData)
-	if err != nil {
-		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
+		t.Fatalf("Cannot parse content: %+v", err)
 	}
 	if !cmp.Equal(want, got) {
 		t.Fatal(cmp.Diff(want, got))
@@ -341,7 +293,7 @@ func TestParseRSSResponse_SkipItemGivenNoTitle(t *testing.T) {
 
 func TestParseRSSResponse_ErrorsIfDataIsNotXML(t *testing.T) {
 	t.Parallel()
-	_, err := morningpost.ParseRSSResponse([]byte("{}"))
+	_, err := morningpost.ParseRSSResponse(strings.NewReader("{}"))
 	if err == nil {
 		t.Fatalf("want error but not found")
 	}
@@ -376,7 +328,7 @@ func TestParseRDFResponse_ReturnsNewsGivenRDFData(t *testing.T) {
 
 func TestParseRDFResponse_ErrorsIfDataIsNotXML(t *testing.T) {
 	t.Parallel()
-	_, err := morningpost.ParseRSSResponse([]byte("{}"))
+	_, err := morningpost.ParseRDFResponse(strings.NewReader("{}"))
 	if err == nil {
 		t.Fatalf("want error but not found")
 	}
@@ -703,61 +655,13 @@ func TestParseAtomResponse_ReturnsNewsGivenAtomWithTwoNews(t *testing.T) {
 			URL:   "https://utcc.utoronto.ca/~cks/space/blog/linux/DebconfWhiptailVsXterm",
 		},
 	}
-	inputData, err := os.ReadFile("testdata/atom.xml")
+	file, err := os.Open("testdata/atom.xml")
 	if err != nil {
-		t.Fatalf("Cannot read file content: %+v", err)
+		t.Fatalf("Cannot open file testdata/atom.xml: %+v", err)
 	}
-	got, err := morningpost.ParseAtomResponse(inputData)
+	got, err := morningpost.ParseAtomResponse(file)
 	if err != nil {
-		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
-	}
-	if !cmp.Equal(want, got) {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestParseAtomResponse_SkipItemGivenNewsWithNoURL(t *testing.T) {
-	t.Parallel()
-	want := []morningpost.News{}
-	inputData, err := os.ReadFile("testdata/no-url-item-atom.xml")
-	if err != nil {
-		t.Fatalf("Cannot read file content: %+v", err)
-	}
-	got, err := morningpost.ParseAtomResponse(inputData)
-	if err != nil {
-		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
-	}
-	if !cmp.Equal(want, got) {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestParseAtomResponse_SkipItemGivenInvalidURL(t *testing.T) {
-	t.Parallel()
-	want := []morningpost.News{}
-	inputData, err := os.ReadFile("testdata/invalid-url-item-atom.xml")
-	if err != nil {
-		t.Fatalf("Cannot read file content: %+v", err)
-	}
-	got, err := morningpost.ParseAtomResponse(inputData)
-	if err != nil {
-		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
-	}
-	if !cmp.Equal(want, got) {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestParseAtomResponse_SkipItemGivenNoTitle(t *testing.T) {
-	t.Parallel()
-	want := []morningpost.News{}
-	inputData, err := os.ReadFile("testdata/no-title-item-atom.xml")
-	if err != nil {
-		t.Fatalf("Cannot read file content: %+v", err)
-	}
-	got, err := morningpost.ParseAtomResponse(inputData)
-	if err != nil {
-		t.Fatalf("Cannot parse content %q: %+v", inputData, err)
+		t.Fatalf("Cannot parse content: %+v", err)
 	}
 	if !cmp.Equal(want, got) {
 		t.Fatal(cmp.Diff(want, got))
@@ -766,7 +670,7 @@ func TestParseAtomResponse_SkipItemGivenNoTitle(t *testing.T) {
 
 func TestParseAtomResponse_ErrorsIfDataIsNotXML(t *testing.T) {
 	t.Parallel()
-	_, err := morningpost.ParseAtomResponse([]byte("{}"))
+	_, err := morningpost.ParseAtomResponse(strings.NewReader("{}"))
 	if err == nil {
 		t.Fatalf("want error but not found")
 	}
@@ -1086,5 +990,42 @@ func TestFeedFinds_SetsHeadersOnHTTPRequest(t *testing.T) {
 	_, err := m.FindFeeds(ts.URL)
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestNewNews_ErrorsGiven(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		desc  string
+		feed  string
+		title string
+		URL   string
+	}{
+		{
+			desc:  "Empty Feed",
+			feed:  "",
+			title: "bogus",
+			URL:   "http://fake.url",
+		},
+		{
+			desc:  "Empty Title",
+			feed:  "bogus",
+			title: "",
+			URL:   "http://fake.url",
+		},
+		{
+			desc:  "Empty URL",
+			feed:  "bogus",
+			title: "bogus",
+			URL:   "",
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			_, err := morningpost.NewNews(tC.feed, tC.title, tC.URL)
+			if err == nil {
+				t.Fatal("want error but got nil")
+			}
+		})
 	}
 }
