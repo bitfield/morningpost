@@ -17,3 +17,4 @@ http://rss.cnn.com/rss/cnn_topstories.rss
 https://techcrunch.com/feed/
 https://news.ycombinator.com/rss
 https://utcc.utoronto.ca/~cks/space/blog/?atom
+https://rss.slashdot.org/Slashdot/slashdotMain

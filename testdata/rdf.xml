@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns="http://purl.org/rss/1.0/"
+    xmlns:admin="http://webns.net/mvcb/"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+    xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+    xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/">
+
+    <channel rdf:about="https://slashdot.org/">
+        <title>Slashdot</title>
+        <link>https://slashdot.org/</link>
+        <description>News for nerds, stuff that matters</description>
+        <dc:language>en-us</dc:language>
+        <dc:rights>Copyright 1997-2016, SlashdotMedia. All Rights Reserved.</dc:rights>
+        <dc:date>2023-04-02T11:22:07+00:00</dc:date>
+        <dc:publisher>Dice</dc:publisher>
+        <dc:creator>help@slashdot.org</dc:creator>
+        <dc:subject>Technology</dc:subject>
+        <syn:updateBase>1970-01-01T00:00+00:00</syn:updateBase>
+        <syn:updateFrequency>1</syn:updateFrequency>
+        <syn:updatePeriod>hourly</syn:updatePeriod>
+        <items>
+            <rdf:Seq>
+                <rdf:li rdf:resource="https://ask.slashdot.org/story/23/04/02/0058226/ask-slashdot-what-was-your-longest-lived-pc?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://it.slashdot.org/story/23/04/01/2059224/san-francisco-faces-doom-loop-from-office-workers-staying-home-gutting-tax-base?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://apple.slashdot.org/story/23/04/01/2326247/steve-jobs-has-a-new-memoir-to-be-published-more-than-11-years-after-his-death?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://developers.slashdot.org/story/23/04/01/2235220/can-codon-turbocharge-pythons-notoriously-slow-compiler?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://science.slashdot.org/story/23/04/01/0437201/space-scientists-reveal-brightest-gamma-explosion-ever?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://tech.slashdot.org/story/23/04/01/204251/scammers-are-tricking-instagram-into-banning-influencers?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://tech.slashdot.org/story/23/04/01/1853206/californias-rain-slows-construction-for-its-high-speed-bullet-train?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://slashdot.org/story/23/04/01/0414241/with-easy-ai-generated-deepfakes-is-every-day-april-fools-day-now?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://science.slashdot.org/story/23/04/01/0549250/spacexs-starship-gets-its-first-commercial-contract-to-moons-surface?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://slashdot.org/story/23/04/01/0515242/these-angry-dutch-farmers-really-hate-microsoft-over-data-centers?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://slashdot.org/story/23/04/01/0642219/it-turns-out-moderate-drinking-isnt-good-for-your-health-new-study-finds?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://science.slashdot.org/story/23/04/01/0329214/chinese-officials-release-updated-analysis-of-1300-samples-from-wuhan-market?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://yro.slashdot.org/story/23/04/01/0250214/german-police-raid-ddos-friendly-host-flyhosting?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://hardware.slashdot.org/story/23/04/01/0245254/heat-pump-sales-outpaced-gas-furnace-sales-in-the-us-in-2022?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+                <rdf:li rdf:resource="https://science.slashdot.org/story/23/03/31/2320242/scientists-erupt-at-nasa-gutting-funding-for-crucial-venus-mission?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+            </rdf:Seq>
+        </items>
+        <image rdf:resource="https://a.fsdn.com/sd/topics/topicslashdot.gif" />
+        <textinput rdf:resource="https://slashdot.org/search.pl" />
+    </channel>
+    <image rdf:about="https://a.fsdn.com/sd/topics/topicslashdot.gif">
+        <title>Slashdot</title>
+        <url>https://a.fsdn.com/sd/topics/topicslashdot.gif</url>
+        <link>https://slashdot.org/</link>
+    </image>
+    <item rdf:about="https://ask.slashdot.org/story/23/04/02/0058226/ask-slashdot-what-was-your-longest-lived-pc?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed">
+        <title>Ask Slashdot:  What Was Your Longest-Lived PC?</title>
+        <link>https://ask.slashdot.org/story/23/04/02/0058226/ask-slashdot-what-was-your-longest-lived-pc?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed</link>
+        <description>Replacing their main machine, long-time Slashdot reader shanen had a sobering thought. "Considering how many years it's lasted and adding that number to my own age, I wouldn't want to bet on who will outlast which." And this prompted a look back at all the computers used over a lifetime:
+
+I've purchased at least 15 personal computers over the decades. Might be more like 20 and couldn't even count how many company computers I've used for various classes and work. Then there were the computer labs filled with my students. 
+
+But this ultimately led them to two questions for Slashdot's readers: 
+
+(1) What was the brand of your longest-lived PC?
+(2) What is the brand of your latest PC and how long do you expect it to last?
+ 
+Some answers have already been posted on the original submission.
+
+I think the longest-lasting computer that I used on a daily basis as my main device was a Lenovo ThinkPad R500. I bought it in 2010 and used it until 2019. It still worked when I retired it, but it was getting a bit slow. 
+The longest lived was a PDP11/34A. Made in the late 70s or early 80s, it was still running when I sold it in 2005. Did a couple of component-level repairs, and I reckon there's every chance that it still runs today. Not sure if it counts as "personal" though. I have a polycarbonate Macbook from 2007 still going strong, so I guess that makes the answer "Apple".
+
+There's also an interesting story about a long-running server from days gone. But what's your own answer to the question? Share your own stories in the comments. 
+
+What was the brand of your longest-lived PC &amp;mdash; and how long do you expect your current PC to last?&lt;p&gt;&lt;div class="share_submission" style="position:relative;"&gt;
+&lt;a class="slashpop" href="http://twitter.com/home?status=Ask+Slashdot%3A++What+Was+Your+Longest-Lived+PC%3F%3A+https%3A%2F%2Fask.slashdot.org%2Fstory%2F23%2F04%2F02%2F0058226%2F%3Futm_source%3Dtwitter%26utm_medium%3Dtwitter"&gt;&lt;img src="https://a.fsdn.com/sd/twitter_icon_large.png"&gt;&lt;/a&gt;
+&lt;a class="slashpop" href="http://www.facebook.com/sharer.php?u=https%3A%2F%2Fask.slashdot.org%2Fstory%2F23%2F04%2F02%2F0058226%2Fask-slashdot-what-was-your-longest-lived-pc%3Futm_source%3Dslashdot%26utm_medium%3Dfacebook"&gt;&lt;img src="https://a.fsdn.com/sd/facebook_icon_large.png"&gt;&lt;/a&gt;
+
+
+
+&lt;/div&gt;&lt;/p&gt;&lt;p&gt;&lt;a href="https://ask.slashdot.org/story/23/04/02/0058226/ask-slashdot-what-was-your-longest-lived-pc?utm_source=rss1.0moreanon&amp;amp;utm_medium=feed"&gt;Read more of this story&lt;/a&gt; at Slashdot.&lt;/p&gt;&lt;iframe src="https://slashdot.org/slashdot-it.pl?op=discuss&amp;amp;id=22827738&amp;amp;smallembed=1" style="height: 300px; width: 100%; border: none;"&gt;&lt;/iframe&gt;</description>
+        <dc:creator>EditorDavid</dc:creator>
+        <dc:date>2023-04-02T07:34:00+00:00</dc:date>
+        <dc:subject>amiga</dc:subject>
+        <slash:department>long-term-support</slash:department>
+        <slash:section>askslashdot</slash:section>
+        <slash:comments>89</slash:comments>
+        <slash:hit_parade>89,89,86,68,11,3,0</slash:hit_parade>
+    </item>
+    <item rdf:about="https://it.slashdot.org/story/23/04/01/2059224/san-francisco-faces-doom-loop-from-office-workers-staying-home-gutting-tax-base?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed">
+        <title>San Francisco Faces 'Doom Loop' from Office Workers Staying Home, Gutting Tax Base</title>
+        <link>https://it.slashdot.org/story/23/04/01/2059224/san-francisco-faces-doom-loop-from-office-workers-staying-home-gutting-tax-base?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed</link>
+        <description>Today a warning was published from the editorial board of the San Francisco Chronicle. "Experts say post-pandemic woes stemming from office workers staying home instead of commuting into the city could send San Francisco into a 'doom loop' that would gut its tax base, decimate fare-reliant regional transit systems like BART and trap it in an economic death spiral...."
+
+Despite our housing crisis, it was years into the COVID pandemic before our leaders meaningfully questioned the logic of reserving some of the most prized real estate on Earth for fickle suburbanites and their cars. Downtown, after all, was San Francisco's golden goose. Companies in downtown offices accounted for 70% of San Francisco's pre-pandemic jobs and generated nearly 80% of its economic output, according to city economist Ted Egan. And so we wasted generous federal COVID emergency funds trying to bludgeon, cajole and pray for office workers to return downtown instead of planning for change. We're now staring down the consequences for that lack of vision. 
+
+The San Francisco metropolitan area's economic recovery from the pandemic ranked 24th out of the 25 largest regions in the U.S., besting only Baltimore, according to a report from the Bay Area Council Economic Institute. In the first quarter of 2023, San Francisco's office vacancy rate shot up to a record-high 29.4% &amp;mdash; the biggest three-year increase of any U.S. city. The trend isn't likely to end anytime soon: In January, nearly 30% of San Francisco job openings were for hybrid or fully remote work, the highest share of the nation's 50 largest cities. Amid lower property, business and real estate transfer taxes, the city is projecting a $728 million deficit over the next two fiscal years. Transit ridership remains far below pre-pandemic levels. In January, downtown San Francisco BART stations had just 30% of the rider exits they did in 2019, according to a report from Egan's office. Many Bay Area transit agencies, including Muni, are rapidly approaching a fiscal cliff. 
+
+San Francisco isn't dead; as of March, it was home to an estimated 173 of the country's 655 companies valued at more than $1 billion. Tourism is beginning to rebound. And new census data shows that San Francisco's population loss is slowing, a sign its pandemic exodus may be coming to an end. But the city can't afford to wait idly for things to reach equilibrium again. It needs to evolve &amp;mdash; quickly. Especially downtown. That means rebuilding the neighborhood's fabric, which won't be cheap or easy. Office-to-housing conversions are notoriously tricky and expensive. Demolishing non-historic commercial buildings that no longer serve a purpose in the post-pandemic world is all but banned. And, unlike New York after 9/11, San Francisco is a city that can't seem to stop getting in its own way. 
+
+So what's the solution? The CEO of the Bay Area Council suggests public-private partnerships that "could help shift downtown San Francisco's focus from tech &amp;mdash; with employees now accustomed to working from home &amp;mdash; to research and development, biotech, medical research and manufacturing, which all require in-person workers." 
+
+And last week San Francisco's mayor proposed more than 100 changes to streamline the permitting process for small businesses, and on Monday helped introduce legislation making it easier to convert office buildings to housing, expand pop-up business opportunities, and fill some empty storefronts. This follows a February executive order to speed housing construction. The editorial points out that "About 40% of office buildings in downtown San Francisco evaluated in a study would be good candidates for housing due to their physical characteristics and location and could be converted into approximately 11,200 units, according to research from SPUR and the Urban Land Institute San Francisco." 
+
+But without some action, the editorial's headline argues that "Downtown San Francisco is at risk of collapsing &amp;mdash; and taking much of the Bay Area with it."&lt;p&gt;&lt;div class="share_submission" style="position:relative;"&gt;
+&lt;a class="slashpop" href="http://twitter.com/home?status=San+Francisco+Faces+'Doom+Loop'+from+Office+Workers+Staying+Home%2C+Gutting+Tax+Base%3A+https%3A%2F%2Fit.slashdot.org%2Fstory%2F23%2F04%2F01%2F2059224%2F%3Futm_source%3Dtwitter%26utm_medium%3Dtwitter"&gt;&lt;img src="https://a.fsdn.com/sd/twitter_icon_large.png"&gt;&lt;/a&gt;
+&lt;a class="slashpop" href="http://www.facebook.com/sharer.php?u=https%3A%2F%2Fit.slashdot.org%2Fstory%2F23%2F04%2F01%2F2059224%2Fsan-francisco-faces-doom-loop-from-office-workers-staying-home-gutting-tax-base%3Futm_source%3Dslashdot%26utm_medium%3Dfacebook"&gt;&lt;img src="https://a.fsdn.com/sd/facebook_icon_large.png"&gt;&lt;/a&gt;
+
+
+
+&lt;/div&gt;&lt;/p&gt;&lt;p&gt;&lt;a href="https://it.slashdot.org/story/23/04/01/2059224/san-francisco-faces-doom-loop-from-office-workers-staying-home-gutting-tax-base?utm_source=rss1.0moreanon&amp;amp;utm_medium=feed"&gt;Read more of this story&lt;/a&gt; at Slashdot.&lt;/p&gt;&lt;iframe src="https://slashdot.org/slashdot-it.pl?op=discuss&amp;amp;id=22827616&amp;amp;smallembed=1" style="height: 300px; width: 100%; border: none;"&gt;&lt;/iframe&gt;</description>
+        <dc:creator>EditorDavid</dc:creator>
+        <dc:date>2023-04-02T03:34:00+00:00</dc:date>
+        <dc:subject>government</dc:subject>
+        <slash:department>game-of-doom</slash:department>
+        <slash:section>it</slash:section>
+        <slash:comments>89</slash:comments>
+        <slash:hit_parade>89,87,78,66,12,5,3</slash:hit_parade>
+    </item>
+    <textinput rdf:about="https://slashdot.org/search.pl">
+        <title>Search Slashdot</title>
+        <description>Search Slashdot stories</description>
+        <name>query</name>
+        <link>https://slashdot.org/search.pl</link>
+    </textinput>
+</rdf:RDF>
