@@ -183,11 +183,7 @@ func (m *MorningPost) FindFeeds(URL string) ([]Feed, error) {
 			return nil, errors.New("unable to detect XMLName in body")
 		}
 	case "text/html":
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		feeds, err := ParseLinkTags(body, URL)
+		feeds, err := ParseLinkTags(resp.Body, URL)
 		if err != nil {
 			return nil, err
 		}
@@ -406,12 +402,12 @@ func parseContentType(headers http.Header) string {
 	return strings.Split(headers.Get("content-type"), ";")[0]
 }
 
-func ParseLinkTags(data []byte, baseURL string) ([]Feed, error) {
+func ParseLinkTags(r io.Reader, baseURL string) ([]Feed, error) {
 	base, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(data))
+	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		return nil, err
 	}

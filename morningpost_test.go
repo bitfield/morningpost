@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -813,7 +814,7 @@ func TestParseLinkTags_ReturnsFeedEndpointGivenHTMLPageWithRSSFeedInBodyElement(
 		Endpoint: "https://bitfieldconsulting.com/golang?format=rss",
 		Type:     morningpost.FeedTypeRSS,
 	}}
-	got, err := morningpost.ParseLinkTags([]byte(`<a href="https://bitfieldconsulting.com/golang?format=rss" title="Go RSS" class="social-rss">Go RSS</a>`), "")
+	got, err := morningpost.ParseLinkTags(strings.NewReader(`<a href="https://bitfieldconsulting.com/golang?format=rss" title="Go RSS" class="social-rss">Go RSS</a>`), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -828,7 +829,7 @@ func TestParseLinkTags_ReturnsFeedEndpointGivenHTMLPageWithRSSFeedInLinkElement(
 		Endpoint: "http://fake.url/rss",
 		Type:     morningpost.FeedTypeRSS,
 	}}
-	got, err := morningpost.ParseLinkTags([]byte(`<link type="application/rss+xml" title="Unit Test" href="http://fake.url/rss" />`), "")
+	got, err := morningpost.ParseLinkTags(strings.NewReader(`<link type="application/rss+xml" title="Unit Test" href="http://fake.url/rss" />`), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -843,7 +844,7 @@ func TestParseLinkTags_ReturnsFeedEndpointGivenHTMLPageWithAtomFeedInLinkElement
 		Endpoint: "http://fake.url/feed/",
 		Type:     morningpost.FeedTypeAtom,
 	}}
-	got, err := morningpost.ParseLinkTags([]byte(`<link type="application/atom+xml" title="Unit Test" href="http://fake.url/feed/" />`), "")
+	got, err := morningpost.ParseLinkTags(strings.NewReader(`<link type="application/atom+xml" title="Unit Test" href="http://fake.url/feed/" />`), "")
 	if err != nil {
 		t.Fatal(err)
 	}
