@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html/charset"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -36,6 +37,7 @@ const (
 	DefaultShowMaxNews = 50
 	FeedTypeRSS        = "RSS"
 	FeedTypeAtom       = "Atom"
+	FeedTypeRDF        = "RDF"
 )
 
 type News struct {
@@ -144,21 +146,42 @@ func (m *MorningPost) FindFeeds(URL string) ([]Feed, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected response status code %q", resp.Status)
 	}
 	contentType := parseContentType(resp.Header)
 	switch contentType {
-	case "application/rss+xml", "application/xml", "text/xml":
-		return []Feed{{
-			Endpoint: URL,
-			Type:     FeedTypeRSS,
-		}}, nil
-	case "application/atom+xml":
-		return []Feed{{
-			Endpoint: URL,
-			Type:     FeedTypeAtom,
-		}}, nil
+	case "application/rss+xml", "application/atom+xml", "text/xml", "application/xml":
+		type feedType struct {
+			XMLName xml.Name
+		}
+		feedTypeData := feedType{}
+		decoder := xml.NewDecoder(resp.Body)
+		decoder.CharsetReader = charset.NewReaderLabel
+		err := decoder.Decode(&feedTypeData)
+		if err != nil {
+			return nil, fmt.Errorf("cannot decode data: %w", err)
+		}
+		switch strings.ToUpper(feedTypeData.XMLName.Local) {
+		case "RSS":
+			return []Feed{{
+				Endpoint: URL,
+				Type:     FeedTypeRSS,
+			}}, nil
+		case "RDF":
+			return []Feed{{
+				Endpoint: URL,
+				Type:     FeedTypeRDF,
+			}}, nil
+		case "FEED":
+			return []Feed{{
+				Endpoint: URL,
+				Type:     FeedTypeAtom,
+			}}, nil
+		default:
+			return nil, errors.New("unable to detect XMLName in body")
+		}
 	case "text/html":
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -367,14 +390,15 @@ func (f Feed) GetNews() ([]News, error) {
 	if err != nil {
 		return nil, err
 	}
-	contentType := parseContentType(resp.Header)
-	switch contentType {
-	case "application/rss+xml", "application/xml", "text/xml":
+	switch f.Type {
+	case FeedTypeRSS:
 		return ParseRSSResponse(body)
-	case "application/atom+xml":
+	case FeedTypeRDF:
+		return ParseRDFResponse(bytes.NewReader(body))
+	case FeedTypeAtom:
 		return ParseAtomResponse(body)
 	default:
-		return nil, fmt.Errorf("unkown content type %q", contentType)
+		return nil, fmt.Errorf("unkown feed type %q", f.Type)
 	}
 }
 
@@ -465,6 +489,35 @@ func ParseRSSResponse(input []byte) ([]News, error) {
 	allNews := make([]News, 0, len(r.Channel.Items))
 	for _, item := range r.Channel.Items {
 		news, err := NewNews(r.Channel.Title, item.Title, item.Link)
+		if err != nil {
+			continue
+		}
+		allNews = append(allNews, news)
+	}
+	return allNews, nil
+}
+
+func ParseRDFResponse(r io.Reader) ([]News, error) {
+	type rdf struct {
+		XMLName xml.Name `xml:"RDF"`
+		Channel struct {
+			Title string `xml:"title"`
+		} `xml:"channel"`
+		Items []struct {
+			Title string `xml:"title"`
+			Link  string `xml:"link"`
+		} `xml:"item"`
+	}
+	rdfData := rdf{}
+	decoder := xml.NewDecoder(r)
+	decoder.CharsetReader = charset.NewReaderLabel
+	err := decoder.Decode(&rdfData)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode data: %w", err)
+	}
+	allNews := make([]News, 0, len(rdfData.Items))
+	for _, item := range rdfData.Items {
+		news, err := NewNews(rdfData.Channel.Title, item.Title, item.Link)
 		if err != nil {
 			continue
 		}

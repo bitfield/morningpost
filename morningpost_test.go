@@ -346,6 +346,41 @@ func TestParseRSSResponse_ErrorsIfDataIsNotXML(t *testing.T) {
 	}
 }
 
+func TestParseRDFResponse_ReturnsNewsGivenRDFData(t *testing.T) {
+	t.Parallel()
+	want := []morningpost.News{
+		{
+			Feed:  "Slashdot",
+			Title: "Ask Slashdot:  What Was Your Longest-Lived PC?",
+			URL:   "https://ask.slashdot.org/story/23/04/02/0058226/ask-slashdot-what-was-your-longest-lived-pc?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+		},
+		{
+			Feed:  "Slashdot",
+			Title: "San Francisco Faces 'Doom Loop' from Office Workers Staying Home, Gutting Tax Base",
+			URL:   "https://it.slashdot.org/story/23/04/01/2059224/san-francisco-faces-doom-loop-from-office-workers-staying-home-gutting-tax-base?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+		},
+	}
+	rdf, err := os.Open("testdata/rdf.xml")
+	if err != nil {
+		t.Fatalf("Cannot read file content: %+v", err)
+	}
+	got, err := morningpost.ParseRDFResponse(rdf)
+	if err != nil {
+		t.Fatalf("Cannot parse rdf content: %+v", err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestParseRDFResponse_ErrorsIfDataIsNotXML(t *testing.T) {
+	t.Parallel()
+	_, err := morningpost.ParseRSSResponse([]byte("{}"))
+	if err == nil {
+		t.Fatalf("want error but not found")
+	}
+}
+
 func TestHandleFeeds_AnswersMethodNotAllowedGivenRequestWithBogusMethod(t *testing.T) {
 	t.Parallel()
 	want := http.StatusMethodNotAllowed
@@ -386,7 +421,7 @@ func TestHandleFeeds_ReturnsExpectedStatusCodeGivenRequestWithMethodPostAndBody(
 	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
 	tsHandler := httptest.NewServer(http.HandlerFunc(m.HandleFeeds))
 	defer tsHandler.Close()
-	ts := newServerWithContentTypeResponse(t, "application/rss+xml")
+	ts := newServerWithContentTypeAndBodyResponse(t, "application/rss+xml", "testdata/rss.xml")
 	reqBody := url.Values{
 		"url": {ts.URL},
 	}
@@ -490,6 +525,7 @@ func TestFeedGetNews_ReturnsNewsFromFeed(t *testing.T) {
 			ts := newServerWithContentTypeAndBodyResponse(t, tC.contentType, "testdata/rss.xml")
 			feed := morningpost.Feed{
 				Endpoint: ts.URL,
+				Type:     morningpost.FeedTypeRSS,
 			}
 			got, err := feed.GetNews()
 			if err != nil {
@@ -518,6 +554,7 @@ func TestFeedGetNews_ReturnsNewsFromFeedGivenResponseContentTypeApplicationAtomX
 	ts := newServerWithContentTypeAndBodyResponse(t, "application/atom+xml", "testdata/atom.xml")
 	feed := morningpost.Feed{
 		Endpoint: ts.URL,
+		Type:     morningpost.FeedTypeAtom,
 	}
 	got, err := feed.GetNews()
 	if err != nil {
@@ -547,6 +584,7 @@ func TestFeedGetNews_SetsHeadersOnHTTPRequest(t *testing.T) {
 	defer ts.Close()
 	feed := morningpost.Feed{
 		Endpoint: ts.URL,
+		Type:     morningpost.FeedTypeRSS,
 	}
 	_, err := feed.GetNews()
 	if err != nil {
@@ -584,11 +622,13 @@ func TestGetNews_ReturnsNewsFromAllFeedsGivenPopulatedStore(t *testing.T) {
 	ts1 := newServerWithContentTypeAndBodyResponse(t, "application/rss+xml", "testdata/rss-with-one-news-1.xml")
 	feed1 := morningpost.Feed{
 		Endpoint: ts1.URL,
+		Type:     morningpost.FeedTypeRSS,
 	}
 	m.Store.Data[0] = feed1
 	ts2 := newServerWithContentTypeAndBodyResponse(t, "application/rss+xml", "testdata/rss-with-one-news-2.xml")
 	feed2 := morningpost.Feed{
 		Endpoint: ts2.URL,
+		Type:     morningpost.FeedTypeRSS,
 	}
 	m.Store.Data[1] = feed2
 	err := m.GetNews()
@@ -846,7 +886,7 @@ func TestFindFeeds_ErrorsGivenUnexpectedContentType(t *testing.T) {
 
 func TestFindFeeds_ReturnsExpectedFeedsGivenApplicationRSSXMLContentType(t *testing.T) {
 	t.Parallel()
-	ts := newServerWithContentTypeResponse(t, "application/rss+xml")
+	ts := newServerWithContentTypeAndBodyResponse(t, "application/rss+xml", "testdata/rss.xml")
 	want := []morningpost.Feed{{
 		Endpoint: ts.URL,
 		Type:     morningpost.FeedTypeRSS,
@@ -861,9 +901,9 @@ func TestFindFeeds_ReturnsExpectedFeedsGivenApplicationRSSXMLContentType(t *test
 	}
 }
 
-func TestFindFeeds_ReturnsExpectedFeedsGivenApplicationXMLContentType(t *testing.T) {
+func TestFindFeeds_ReturnsExpectedFeedsGivenApplicationXMLContentTypeAndRSSData(t *testing.T) {
 	t.Parallel()
-	ts := newServerWithContentTypeResponse(t, "application/xml")
+	ts := newServerWithContentTypeAndBodyResponse(t, "application/xml", "testdata/rss.xml")
 	want := []morningpost.Feed{{
 		Endpoint: ts.URL,
 		Type:     morningpost.FeedTypeRSS,
@@ -878,12 +918,29 @@ func TestFindFeeds_ReturnsExpectedFeedsGivenApplicationXMLContentType(t *testing
 	}
 }
 
-func TestFindFeeds_ReturnsExpectedFeedsGivenTextXMLContentType(t *testing.T) {
+func TestFindFeeds_ReturnsExpectedFeedsGivenTextXMLContentTypeAndRSSData(t *testing.T) {
 	t.Parallel()
-	ts := newServerWithContentTypeResponse(t, "text/xml")
+	ts := newServerWithContentTypeAndBodyResponse(t, "text/xml", "testdata/rss.xml")
 	want := []morningpost.Feed{{
 		Endpoint: ts.URL,
 		Type:     morningpost.FeedTypeRSS,
+	}}
+	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
+	got, err := m.FindFeeds(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cmp.Equal(want, got) {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestFindFeeds_ReturnsExpectedFeedsGivenTextXMLContentTypeAndRDFData(t *testing.T) {
+	t.Parallel()
+	ts := newServerWithContentTypeAndBodyResponse(t, "text/xml", "testdata/rdf.xml")
+	want := []morningpost.Feed{{
+		Endpoint: ts.URL,
+		Type:     morningpost.FeedTypeRDF,
 	}}
 	m := newMorningPostWithBogusFileStoreAndNoOutput(t)
 	got, err := m.FindFeeds(ts.URL)
@@ -897,7 +954,7 @@ func TestFindFeeds_ReturnsExpectedFeedsGivenTextXMLContentType(t *testing.T) {
 
 func TestFindFeeds_ReturnsExpectedFeedsGivenAtomApplicationContentType(t *testing.T) {
 	t.Parallel()
-	ts := newServerWithContentTypeResponse(t, "application/atom+xml")
+	ts := newServerWithContentTypeAndBodyResponse(t, "application/atom+xml", "testdata/atom.xml")
 	want := []morningpost.Feed{{
 		Endpoint: ts.URL,
 		Type:     "Atom",
