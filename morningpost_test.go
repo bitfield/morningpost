@@ -853,6 +853,40 @@ func TestParseLinkTags_ReturnsFeedEndpointGivenHTMLPageWithAtomFeedInLinkElement
 	}
 }
 
+func TestParseFeedType_ReturnsRSSTypeGivenRSSTag(t *testing.T) {
+	t.Parallel()
+	want := morningpost.FeedTypeRSS
+	got, err := morningpost.ParseFeedType(strings.NewReader(`<?xml version="1.0"?>
+<rss version="2.0"></rss>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Fatalf("want XMLName %q, got %q", want, got)
+	}
+}
+
+func TestParseFeedType_ReturnsAtomTypeGivenFeedTag(t *testing.T) {
+	t.Parallel()
+	want := morningpost.FeedTypeAtom
+	got, err := morningpost.ParseFeedType(strings.NewReader(`<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"></feed>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Fatalf("want XMLName %q, got %q", want, got)
+	}
+}
+
+func TestParseFeedType_ErrorsGivenUnexpectedTag(t *testing.T) {
+	t.Parallel()
+	_, err := morningpost.ParseFeedType(strings.NewReader(`<bogus></bogus>`))
+	if err == nil {
+		t.Fatal("want error but got nil")
+	}
+}
+
 func TestFindFeeds_ErrorsIfStatusCodeIsNotStatusOK(t *testing.T) {
 	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

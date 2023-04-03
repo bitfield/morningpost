@@ -153,35 +153,14 @@ func (m *MorningPost) FindFeeds(URL string) ([]Feed, error) {
 	contentType := parseContentType(resp.Header)
 	switch contentType {
 	case "application/rss+xml", "application/atom+xml", "text/xml", "application/xml":
-		type feedType struct {
-			XMLName xml.Name
-		}
-		feedTypeData := feedType{}
-		decoder := xml.NewDecoder(resp.Body)
-		decoder.CharsetReader = charset.NewReaderLabel
-		err := decoder.Decode(&feedTypeData)
+		feedType, err := ParseFeedType(resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("cannot decode data: %w", err)
+			return nil, err
 		}
-		switch strings.ToUpper(feedTypeData.XMLName.Local) {
-		case "RSS":
-			return []Feed{{
-				Endpoint: URL,
-				Type:     FeedTypeRSS,
-			}}, nil
-		case "RDF":
-			return []Feed{{
-				Endpoint: URL,
-				Type:     FeedTypeRDF,
-			}}, nil
-		case "FEED":
-			return []Feed{{
-				Endpoint: URL,
-				Type:     FeedTypeAtom,
-			}}, nil
-		default:
-			return nil, errors.New("unable to detect XMLName in body")
-		}
+		return []Feed{{
+			Endpoint: URL,
+			Type:     feedType,
+		}}, nil
 	case "text/html":
 		feeds, err := ParseLinkTags(resp.Body, URL)
 		if err != nil {
@@ -549,6 +528,29 @@ func ParseAtomResponse(input []byte) ([]News, error) {
 		allNews = append(allNews, news)
 	}
 	return allNews, nil
+}
+
+func ParseFeedType(r io.Reader) (string, error) {
+	type feedType struct {
+		XMLName xml.Name
+	}
+	feedTypeData := feedType{}
+	decoder := xml.NewDecoder(r)
+	decoder.CharsetReader = charset.NewReaderLabel
+	err := decoder.Decode(&feedTypeData)
+	if err != nil {
+		return "", err
+	}
+	switch strings.ToUpper(feedTypeData.XMLName.Local) {
+	case "RSS":
+		return FeedTypeRSS, nil
+	case "FEED":
+		return FeedTypeAtom, nil
+	case "RDF":
+		return FeedTypeRDF, nil
+	default:
+		return "", fmt.Errorf("unexpected XMLName %q", strings.ToUpper(feedTypeData.XMLName.Local))
+	}
 }
 
 type Option func(*MorningPost) error
