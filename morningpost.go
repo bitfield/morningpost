@@ -33,7 +33,7 @@ var templates embed.FS
 const (
 	DefaultHTTPTimeout = 30 * time.Second
 	DefaultListenPort  = 33000
-	DefaultShowMaxNews = 50
+	DefaultShowMaxNews = 20
 	FeedTypeRSS        = "RSS"
 	FeedTypeAtom       = "Atom"
 	FeedTypeRDF        = "RDF"
